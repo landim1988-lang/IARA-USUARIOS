@@ -40,6 +40,9 @@ const knownBankDomains: Record<string, string> = {
   c6: "www.c6bank.com.br",
   safra: "www.safra.com.br",
   daycoval: "www.daycoval.com.br",
+  agibank: "www.agibank.com.br",
+  "banco agibank": "www.agibank.com.br",
+  "agi bank": "www.agibank.com.br",
   digio: "www.digio.com.br",
   "banco digio": "www.digio.com.br",
   neon: "www.neon.com.br",
@@ -111,7 +114,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       name: bankName,
       portal_url: knownPortal,
-      logo_url: knownDomain ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(knownDomain)}&sz=128` : null,
+      logo_url: knownDomain ? `https://logo.clearbit.com/${encodeURIComponent(knownDomain)}?size=160` : null,
       notes: "Portal oficial identificado pela base de instituições; confirme a logo antes de salvar.",
     });
   }
@@ -119,7 +122,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       name: bankName,
       portal_url: portalUrl,
-      logo_url: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(portalDomain)}&sz=128`,
+      logo_url: `https://logo.clearbit.com/${encodeURIComponent(portalDomain)}?size=160`,
       notes: "Logo carregada a partir do portal informado; revise antes de salvar.",
     });
   }
@@ -181,7 +184,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     name: typeof suggestion.name === "string" && suggestion.name.trim() ? suggestion.name.trim() : bankName,
     portal_url: portalUrl,
-    logo_url: domain ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128` : null,
+    logo_url: domain ? `https://logo.clearbit.com/${encodeURIComponent(domain)}?size=160` : null,
     notes: typeof suggestion.notes === "string" ? suggestion.notes.trim() || null : null,
   } satisfies Enrichment & { logo_url: string | null });
 }
