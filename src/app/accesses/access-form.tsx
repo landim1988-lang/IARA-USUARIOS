@@ -55,7 +55,7 @@ export default function AccessForm({ accessId }: { accessId?: string }) {
     event.preventDefault();
     setError("");
     setSaving(true);
-    const response = await fetch("/api/accesses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: accessId, bank_id: bankId, login, cpf_titular: cpfTitular, status, notes, password: password || undefined }) });
+    const response = await fetch("/api/accesses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: accessId, bank_id: bankId, login: login.trim(), cpf_titular: cpfTitular.trim(), status, notes: notes.trim(), password: password || undefined }) });
     const result = await response.json().catch(() => null);
     if (!response.ok) {
       setError(result?.error ?? "Não foi possível salvar. Verifique os dados e tente novamente.");
