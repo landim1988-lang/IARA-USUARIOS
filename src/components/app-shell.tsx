@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Banknote, Building2, ChevronDown, CircleHelp, LayoutDashboard, LogOut, Menu, Moon, Sun, Users, X } from "lucide-react";
-import { createClient, hasSupabaseConfig } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth-client";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -40,14 +40,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (pathname === "/login" || pathname === "/set-password") return;
-    if (!hasSupabaseConfig()) return;
     document.documentElement.dataset.theme = dark ? "dark" : "light";
 
     let timeout: ReturnType<typeof setTimeout>;
     const resetTimeout = () => {
       clearTimeout(timeout);
       timeout = setTimeout(async () => {
-        await createClient().auth.signOut();
+        await authClient.signOut();
         router.replace("/login?expired=1");
       }, 15 * 60 * 1000);
     };
@@ -71,11 +70,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
-    if (!hasSupabaseConfig()) {
-      router.replace("/login?setup=1");
-      return;
-    }
-    await createClient().auth.signOut();
+    await authClient.signOut();
     router.replace("/login");
   }
 
