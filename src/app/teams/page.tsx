@@ -3,7 +3,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowUpRight, LoaderCircle, Pencil, Plus, Search, Trash2, Users, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 type Team = { id: string; name: string; responsible: string | null; notes: string | null };
 const emptyForm = { name: "", responsible: "", notes: "" };
@@ -20,19 +19,21 @@ export default function TeamsPage() {
 
   async function loadTeams() {
     setLoading(true);
-    const { data, error: loadError } = await createClient().from("teams").select("id,name,responsible,notes").order("name");
-    if (loadError) setError("Não foi possível carregar as equipes. Verifique se a migração do Supabase foi aplicada.");
-    else setTeams((data ?? []) as Team[]);
+    const response = await fetch("/api/data?table=teams");
+    const data = await response.json().catch(() => []);
+    if (!response.ok) setError("Não foi possível carregar as equipes do Neon.");
+    else setTeams(data as Team[]);
     setLoading(false);
   }
 
   useEffect(() => {
     let cancelled = false;
     async function loadInitialTeams() {
-      const { data, error: loadError } = await createClient().from("teams").select("id,name,responsible,notes").order("name");
+      const response = await fetch("/api/data?table=teams");
+      const data = await response.json().catch(() => []);
       if (cancelled) return;
-      if (loadError) setError("Não foi possível carregar as equipes. Verifique se a migração do Supabase foi aplicada.");
-      else setTeams((data ?? []) as Team[]);
+      if (!response.ok) setError("Não foi possível carregar as equipes do Neon.");
+      else setTeams(data as Team[]);
       setLoading(false);
     }
     void loadInitialTeams();
@@ -46,17 +47,17 @@ export default function TeamsPage() {
     event.preventDefault();
     setSaving(true);
     setError("");
-    const client = createClient();
     const payload = { name: form.name.trim(), responsible: form.responsible.trim() || null, notes: form.notes.trim() || null };
-    const result = editing ? await client.from("teams").update(payload).eq("id", editing.id) : await client.from("teams").insert(payload);
-    if (result.error) { setError(result.error.code === "23505" ? "Já existe uma equipe com esse nome." : result.error.message); setSaving(false); return; }
+    if (payload.name.length < 2) { setError("Informe um nome de equipe válido."); setSaving(false); return; }
+    const response = await fetch("/api/data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: "teams", id: editing?.id, values: payload }) });
+    if (!response.ok) { setError(response.status === 409 ? "Já existe uma equipe com esse nome." : "Não foi possível salvar a equipe no Neon."); setSaving(false); return; }
     setModalOpen(false); setSaving(false); await loadTeams();
   }
 
   async function deleteTeam(team: Team) {
     if (!window.confirm(`Excluir a equipe ${team.name}?`)) return;
-    const { error: deleteError } = await createClient().from("teams").delete().eq("id", team.id);
-    if (deleteError) setError("Esta equipe ainda está vinculada a acessos e não pode ser excluída.");
+    const response = await fetch("/api/data", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: "teams", id: team.id }) });
+    if (!response.ok) setError("Esta equipe ainda está vinculada a acessos e não pode ser excluída.");
     else await loadTeams();
   }
 
