@@ -39,7 +39,7 @@ export default function LoginForm({ configured, notice }: { configured: boolean;
         </a>
         <div className="login-copy">
           <span className="eyebrow">ÁREA RESTRITA</span>
-          <h1>Bem-vinda, Lorena.</h1>
+          <h1>Bem-vinda, Iara.</h1>
           <p>Esse é seu controle de usuários e senhas.</p>
         </div>
         <form className="login-form" onSubmit={handleSubmit}>
@@ -63,12 +63,9 @@ export default function LoginForm({ configured, notice }: { configured: boolean;
         <span className="login-version">CREDIPI · CONTROLE DE USUÁRIOS</span>
       </section>
       <aside className="login-art" aria-label="Identidade visual da CREDIPI">
-        <div className="lorena-hanging" aria-hidden="true"><Image src="/lorena-chibi.png" alt="" width={230} height={300} priority /></div>
         <div className="art-orbit art-orbit-one" />
         <div className="art-orbit art-orbit-two" />
-        <div className="art-mark art-logo-mark">
-          <Image src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/CREDIPI%20CZAO-8svxede8NVqAQKHQTJUjZP4UrkkXrb.jpg" alt="Símbolo CREDIPI" width={220} height={220} priority />
-        </div>
+        <div className="art-mark">$</div>
         <div className="art-caption"><span>CREDIPI</span><span>CONTROLE COM CONFIANÇA</span></div>
       </aside>
     </main>

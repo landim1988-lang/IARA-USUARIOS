@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Banknote, Building2, Clock3, LoaderCircle, Plus, Users } from "lucide-react";
@@ -53,8 +54,9 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="page-heading">
-        <div><span className="eyebrow">GESTÃO</span><h1>Visão geral</h1><p>Acompanhe os acessos bancários e a operação da sua equipe.</p></div>
+      <div className="page-heading dashboard-welcome">
+        <div><span className="eyebrow">GESTÃO</span><h1>Bem-vinda, Lorena.</h1><p>Que bom ter você por aqui. Acompanhe os acessos bancários e a operação da sua equipe.</p></div>
+        <div className="lorena-dashboard-greeting"><Image src="/lorena-chibi.png" alt="Lorena comemorando" width={112} height={146} priority /><span>Vamos nessa!</span></div>
         <Link className="primary-button" href="/accesses/new"><Plus size={17} /> Novo acesso</Link>
       </div>
       {error && <p className="inline-error" role="alert">{error}</p>}
