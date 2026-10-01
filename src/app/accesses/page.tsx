@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowDownToLine, ArrowUpRight, Eye, EyeOff, FileKey2, Filter, LoaderCircle, Plus, Search } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 type AccessRow = {
   id: string; login: string; status: "active" | "blocked" | "canceled"; created_at: string; updated_at: string; password_changed_at: string | null;
@@ -34,15 +33,11 @@ export default function AccessesPage() {
   useEffect(() => {
     let cancelled = false;
     async function loadInitialData() {
-      const client = createClient();
-      const [{ data: accessData, error: accessError }, { data: bankData }, { data: teamData }] = await Promise.all([
-        client.from("accesses").select("id,login,status,created_at,updated_at,password_changed_at,banks(id,name,color,logo_url),access_teams(team_id,teams(id,name))").order("updated_at", { ascending: false }),
-        client.from("banks").select("id,name").order("name"),
-        client.from("teams").select("id,name").order("name"),
-      ]);
+      const [accessResponse, bankResponse, teamResponse] = await Promise.all([fetch("/api/accesses"), fetch("/api/data?table=banks"), fetch("/api/data?table=teams")]);
+      const [accessData, bankData, teamData] = await Promise.all([accessResponse.json(), bankResponse.json(), teamResponse.json()]);
       if (cancelled) return;
-      if (accessError) setError("Não foi possível carregar os acessos. Confira a configuração do Supabase.");
-      else setAccesses((accessData ?? []) as unknown as AccessRow[]);
+      if (!accessResponse.ok) setError("Não foi possível carregar os acessos do Neon.");
+      else setAccesses((accessData ?? []).map((row: Record<string, unknown>) => ({ ...row, banks: row.bank_name ? { id: row.bank_id_ref as string, name: row.bank_name as string, color: row.bank_color as string, logo_url: row.logo_url as string | null } : null, access_teams: [] })) as AccessRow[]);
       setBanks((bankData ?? []) as Bank[]);
       setTeams((teamData ?? []) as Team[]);
       setLoading(false);
@@ -61,17 +56,19 @@ export default function AccessesPage() {
 
   async function revealPassword(id: string) {
     if (revealed[id]) { setRevealed((current) => { const next = { ...current }; delete next[id]; return next; }); return; }
-    const { data, error: revealError } = await createClient().rpc("reveal_access_password", { p_access_id: id });
-    if (revealError) setError("Não foi possível revelar a senha. Verifique se a chave do Vault está configurada.");
-    else setRevealed((current) => ({ ...current, [id]: data as string }));
+    const response = await fetch("/api/accesses", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) setError(data?.error ?? "Não foi possível revelar a senha.");
+    else setRevealed((current) => ({ ...current, [id]: data.password }));
   }
 
   async function copyPassword(id: string) {
     let value = revealed[id];
     if (!value) {
-      const { data, error: revealError } = await createClient().rpc("reveal_access_password", { p_access_id: id });
-      if (revealError) { setError("Não foi possível copiar a senha. Verifique a configuração do Vault."); return; }
-      value = data as string;
+      const response = await fetch("/api/accesses", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) { setError(data?.error ?? "Não foi possível copiar a senha."); return; }
+      value = data.password;
     }
     await navigator.clipboard.writeText(value);
     setError("");

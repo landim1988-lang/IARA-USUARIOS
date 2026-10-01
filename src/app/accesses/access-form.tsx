@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, Eye, EyeOff, KeyRound, RefreshCw, ShieldCheck } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 type Bank = { id: string; name: string; is_active: boolean };
 type Team = { id: string; name: string };
@@ -35,25 +34,17 @@ export default function AccessForm({ accessId }: { accessId?: string }) {
 
   useEffect(() => {
     async function loadForm() {
-      const client = createClient();
-      const [{ data: bankData, error: bankError }, { data: teamData, error: teamError }] = await Promise.all([
-        client.from("banks").select("id,name,is_active").order("name"),
-        client.from("teams").select("id,name").order("name"),
-      ]);
-      if (bankError || teamError) setError("Não foi possível carregar os cadastros do Supabase.");
+      const [bankResponse, teamResponse] = await Promise.all([fetch("/api/data?table=banks"), fetch("/api/data?table=teams")]);
+      const [bankData, teamData] = await Promise.all([bankResponse.json(), teamResponse.json()]);
+      if (!bankResponse.ok || !teamResponse.ok) setError("Não foi possível carregar os cadastros do Neon.");
       setBanks((bankData ?? []) as Bank[]);
       setTeams((teamData ?? []) as Team[]);
       if (accessId) {
-        const { data, error: accessError } = await client.from("accesses").select("id,bank_id,login,status,notes,access_teams(team_id)").eq("id", accessId).single();
-        if (accessError || !data) setError("Não foi possível localizar este acesso.");
-        else {
-          const access = data as unknown as Access & { access_teams: { team_id: string }[] };
-          setBankId(access.bank_id);
-          setLogin(access.login);
-          setStatus(access.status);
-          setNotes(access.notes ?? "");
-          setTeamIds(access.access_teams.map((link) => link.team_id));
-        }
+        const response = await fetch(`/api/accesses?id=${accessId}`);
+        const data = await response.json();
+        const access = data?.[0] as Access | undefined;
+        if (!response.ok || !access) setError("Não foi possível localizar este acesso.");
+        else { setBankId(access.bank_id); setLogin(access.login); setStatus(access.status); setNotes(access.notes ?? ""); }
       }
       setLoading(false);
     }
@@ -71,17 +62,10 @@ export default function AccessForm({ accessId }: { accessId?: string }) {
     event.preventDefault();
     setError("");
     setSaving(true);
-    const { error: saveError } = await createClient().rpc("save_access", {
-      p_access_id: accessId ?? null,
-      p_bank_id: bankId,
-      p_login: login.trim(),
-      p_status: status,
-      p_notes: notes.trim() || null,
-      p_team_ids: teamIds,
-      p_password: password || null,
-    });
-    if (saveError) {
-      setError(saveError.code === "23505" ? "Este login já está cadastrado neste banco." : saveError.message.includes("Vault") ? "A chave do Vault ainda não foi configurada no Supabase." : "Não foi possível salvar. Verifique os dados e tente novamente.");
+    const response = await fetch("/api/accesses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: accessId, bank_id: bankId, login, status, notes, team_ids: teamIds, password: password || undefined }) });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      setError(result?.error ?? "Não foi possível salvar. Verifique os dados e tente novamente.");
       setSaving(false);
       return;
     }

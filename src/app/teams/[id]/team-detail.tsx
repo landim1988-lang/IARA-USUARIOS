@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Building2, LoaderCircle } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 type Team = { id: string; name: string; responsible: string | null; notes: string | null };
 type TeamAccess = { id: string; login: string; status: "active" | "blocked" | "canceled"; banks: { id: string; name: string; color: string } | null };
@@ -17,15 +16,14 @@ export default function TeamDetail({ id }: { id: string }) {
 
   useEffect(() => {
     async function loadTeam() {
-      const client = createClient();
-      const [{ data: teamData, error: teamError }, { data: accessData, error: accessError }] = await Promise.all([
-        client.from("teams").select("id,name,responsible,notes").eq("id", id).single(),
-        client.from("accesses").select("id,login,status,banks(id,name,color),access_teams!inner(team_id)").eq("access_teams.team_id", id).order("login"),
-      ]);
-      if (teamError) setError("Equipe não encontrada.");
-      else setTeam(teamData as Team);
-      if (accessError) setError("Não foi possível carregar os acessos da equipe.");
-      else setAccesses((accessData ?? []) as unknown as TeamAccess[]);
+      const [teamResponse, accessResponse] = await Promise.all([fetch("/api/data?table=teams"), fetch("/api/accesses")]);
+      const [teamData, accessData] = await Promise.all([teamResponse.json(), accessResponse.json()]);
+      const selectedTeam = (teamData ?? []).find((team: Team) => team.id === id);
+      const teamAccesses = (accessData ?? []).filter((access: { access_teams?: { team_id: string }[] }) => access.access_teams?.some((link) => link.team_id === id));
+      if (!teamResponse.ok || !selectedTeam) setError("Equipe não encontrada.");
+      else setTeam(selectedTeam as Team);
+      if (!accessResponse.ok) setError("Não foi possível carregar os acessos da equipe.");
+      else setAccesses(teamAccesses as TeamAccess[]);
       setLoading(false);
     }
     void loadTeam();

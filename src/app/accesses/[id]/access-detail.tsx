@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Clock3, Copy, Eye, EyeOff, KeyRound, Pencil, Trash2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 type Detail = { id: string; login: string; status: "active" | "blocked" | "canceled"; notes: string | null; created_at: string; updated_at: string; password_changed_at: string | null; banks: { name: string; color: string; portal_url: string | null; logo_url: string | null } | null; access_teams: { team_id: string; teams: { id: string; name: string } | null }[] };
 type History = { id: number; changed_at: string; field_name: string; previous_value: string | null; new_value: string | null };
@@ -25,16 +24,15 @@ export default function AccessDetail({ id }: { id: string }) {
   useEffect(() => {
     let cancelled = false;
     async function loadDetail() {
-      const client = createClient();
-      const [{ data, error: accessError }, { data: historyData, error: historyError }] = await Promise.all([
-        client.from("accesses").select("id,login,status,notes,created_at,updated_at,password_changed_at,banks(name,color,portal_url,logo_url),access_teams(team_id,teams(id,name))").eq("id", id).single(),
-        client.from("access_history").select("id,changed_at,field_name,previous_value,new_value").eq("access_id", id).order("changed_at", { ascending: false }),
-      ]);
+      const response = await fetch(`/api/accesses?id=${id}`);
+      const rows = await response.json().catch(() => []);
       if (cancelled) return;
-      if (accessError) setError("Não foi possível carregar este acesso.");
-      else setAccess(data as unknown as Detail);
-      if (historyError) setError("Não foi possível carregar o histórico.");
-      else setHistory((historyData ?? []) as History[]);
+      if (!response.ok || !rows[0]) setError("Não foi possível carregar este acesso.");
+      else setAccess(rows[0] as Detail);
+      const auditResponse = await fetch(`/api/audit?entity_id=${id}`);
+      const auditRows = await auditResponse.json().catch(() => []);
+      if (auditResponse.ok) setHistory((auditRows ?? []).map((row: { id: number; created_at: string; action: string; details: Record<string, unknown> }) => ({ id: row.id, changed_at: row.created_at, field_name: row.action, previous_value: null, new_value: row.details ? JSON.stringify(row.details) : null })));
+
       setLoading(false);
     }
     void loadDetail();
@@ -43,23 +41,25 @@ export default function AccessDetail({ id }: { id: string }) {
 
   async function reveal() {
     if (visible) { setVisible(false); setPassword(""); return; }
-    const { data, error: revealError } = await createClient().rpc("reveal_access_password", { p_access_id: id });
-    if (revealError) setError("Não foi possível revelar a senha. Verifique a configuração do Vault.");
-    else { setPassword(data as string); setVisible(true); }
+    const response = await fetch("/api/accesses", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) setError(data?.error ?? "Não foi possível revelar a senha.");
+    else { setPassword(data.password); setVisible(true); }
   }
 
   async function copy() {
     if (!password) {
-      const { data, error: revealError } = await createClient().rpc("reveal_access_password", { p_access_id: id });
-      if (revealError) { setError("Não foi possível copiar a senha."); return; }
-      await navigator.clipboard.writeText(data as string);
+      const response = await fetch("/api/accesses", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) { setError(data?.error ?? "Não foi possível copiar a senha."); return; }
+      await navigator.clipboard.writeText(data.password);
     } else await navigator.clipboard.writeText(password);
   }
 
   async function deleteAccess() {
     if (!window.confirm("Excluir este acesso e seus vínculos? O histórico existente será preservado.")) return;
-    const { error: deleteError } = await createClient().from("accesses").delete().eq("id", id);
-    if (deleteError) setError("Não foi possível excluir o acesso.");
+    const response = await fetch("/api/accesses", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    if (!response.ok) setError("Não foi possível excluir o acesso.");
     else router.replace("/accesses");
   }
 
