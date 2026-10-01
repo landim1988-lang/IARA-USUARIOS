@@ -46,6 +46,16 @@ const knownBankDomains: Record<string, string> = {
   "banco neon": "www.neon.com.br",
   original: "www.original.com.br",
   "banco original": "www.original.com.br",
+  brb: "www.brb.com.br",
+  "banco de brasilia": "www.brb.com.br",
+  "banco de brasília": "www.brb.com.br",
+  "banco brb": "www.brb.com.br",
+  next: "www.next.me",
+  "banco next": "www.next.me",
+  picpay: "picpay.com",
+  "banco picpay": "picpay.com",
+  iti: "iti.itau",
+  "iti itau": "iti.itau",
   will: "www.willbank.com.br",
   willbank: "www.willbank.com.br",
 };
@@ -56,7 +66,7 @@ function normalizeBankName(value: string) {
 
 function getKnownPortal(name: string) {
   const normalized = normalizeBankName(name);
-  const match = Object.entries(knownBankDomains).find(([label]) => normalized === label || normalized.includes(label));
+  const match = Object.entries(knownBankDomains).sort(([a], [b]) => b.length - a.length).find(([label]) => normalized === label || normalized.includes(label));
   return match ? `https://${match[1]}` : null;
 }
 
@@ -67,7 +77,7 @@ function fallbackEnrichment(name: string, portalUrl: string | null) {
   return {
     name,
     portal_url: portalUrl,
-    logo_url: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`,
+    logo_url: `https://logo.clearbit.com/${encodeURIComponent(domain)}?size=160`,
     notes: "Portal identificado automaticamente; revise antes de salvar.",
   };
 }
