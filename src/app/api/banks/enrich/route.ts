@@ -40,12 +40,24 @@ const knownBankDomains: Record<string, string> = {
   c6: "www.c6bank.com.br",
   safra: "www.safra.com.br",
   daycoval: "www.daycoval.com.br",
+  digio: "www.digio.com.br",
+  "banco digio": "www.digio.com.br",
+  neon: "www.neon.com.br",
+  "banco neon": "www.neon.com.br",
+  original: "www.original.com.br",
+  "banco original": "www.original.com.br",
+  will: "www.willbank.com.br",
+  willbank: "www.willbank.com.br",
 };
 
+function normalizeBankName(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 function getKnownPortal(name: string) {
-  const normalized = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").trim();
-  const domain = Object.entries(knownBankDomains).find(([label]) => normalized.includes(label))?.[1];
-  return domain ? `https://${domain}` : null;
+  const normalized = normalizeBankName(name);
+  const match = Object.entries(knownBankDomains).find(([label]) => normalized === label || normalized.includes(label));
+  return match ? `https://${match[1]}` : null;
 }
 
 function fallbackEnrichment(name: string, portalUrl: string | null) {
@@ -83,6 +95,16 @@ export async function POST(request: Request) {
   if (bankName.length < 2 || bankName.length > 120) return NextResponse.json({ error: "Informe um nome de banco válido." }, { status: 400 });
 
   const portalDomain = getDomain(portalUrl);
+  const knownPortal = getKnownPortal(bankName);
+  if (!portalDomain && knownPortal) {
+    const knownDomain = getDomain(knownPortal);
+    return NextResponse.json({
+      name: bankName,
+      portal_url: knownPortal,
+      logo_url: knownDomain ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(knownDomain)}&sz=128` : null,
+      notes: "Portal oficial identificado pela base de instituições; confirme a logo antes de salvar.",
+    });
+  }
   if (portalDomain) {
     return NextResponse.json({
       name: bankName,
