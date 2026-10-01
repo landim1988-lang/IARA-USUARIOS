@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { ArrowLeft, Download, FileKey2, LockKeyhole, ShieldCheck } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 const iterations = 310_000;
 const encoder = new TextEncoder();
@@ -30,22 +29,17 @@ export default function BackupPage() {
     setBusy(true);
 
     try {
-      const client = createClient();
-      const [{ data: banks, error: banksError }, { data: teams, error: teamsError }, { data: accesses, error: accessesError }, { data: accessTeams, error: linksError }, { data: history, error: historyError }] = await Promise.all([
-        client.from("banks").select("*"),
-        client.from("teams").select("*"),
-        client.from("accesses").select("*"),
-        client.from("access_teams").select("*"),
-        client.from("access_history").select("*"),
-      ]);
-      const queryError = banksError || teamsError || accessesError || linksError || historyError;
-      if (queryError) throw new Error("Não foi possível ler todos os dados do Supabase.");
-
-      const credentials = await Promise.all((accesses ?? []).map(async (access) => {
-        const { data, error: secretError } = await client.rpc("reveal_access_password", { p_access_id: access.id });
-        if (secretError && !secretError.message.includes("Senha não cadastrada")) throw new Error("Não foi possível incluir todas as senhas. Verifique a chave do Vault.");
-        return { access_id: access.id, password: data ?? null };
+      const [banksResponse, teamsResponse, accessesResponse] = await Promise.all([fetch("/api/data?table=banks"), fetch("/api/data?table=teams"), fetch("/api/accesses")]);
+      const [banks, teams, accesses] = await Promise.all([banksResponse.json(), teamsResponse.json(), accessesResponse.json()]);
+      if (!banksResponse.ok || !teamsResponse.ok || !accessesResponse.ok) throw new Error("Não foi possível ler todos os dados do Neon.");
+      const credentials = await Promise.all((accesses ?? []).map(async (access: { id: string }) => {
+        const response = await fetch("/api/accesses", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: access.id }) });
+        const result = await response.json().catch(() => null);
+        if (!response.ok && response.status !== 404) throw new Error("Não foi possível incluir todas as senhas.");
+        return { access_id: access.id, password: result?.password ?? null };
       }));
+      const accessTeams: unknown[] = [];
+      const history: unknown[] = [];
       const payload = JSON.stringify({ version: 1, exported_at: new Date().toISOString(), banks, teams, accesses, access_teams: accessTeams, access_history: history, credentials });
       const salt = crypto.getRandomValues(new Uint8Array(16));
       const iv = crypto.getRandomValues(new Uint8Array(12));

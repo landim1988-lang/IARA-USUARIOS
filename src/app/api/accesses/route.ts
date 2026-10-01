@@ -27,6 +27,10 @@ export async function GET(request: Request) {
   const result = id
     ? await pool.query("select a.id,a.bank_id,a.login,a.status,a.notes,a.created_at,a.updated_at,a.password_changed_at,b.id as bank_id_ref,b.name as bank_name,b.color as bank_color,b.logo_url,b.portal_url from accesses a join banks b on b.id=a.bank_id where a.id=$1", [id])
     : await pool.query("select a.id,a.bank_id,a.login,a.status,a.notes,a.created_at,a.updated_at,a.password_changed_at,b.id as bank_id_ref,b.name as bank_name,b.color as bank_color,b.logo_url,b.portal_url from accesses a join banks b on b.id=a.bank_id order by a.updated_at desc");
+  if (id && result.rows[0]) {
+    const teams = await pool.query("select at.team_id,t.id,t.name from access_teams at join teams t on t.id=at.team_id where at.access_id=$1 order by t.name", [id]);
+    result.rows[0].access_teams = teams.rows.map((team) => ({ team_id: team.team_id, teams: { id: team.id, name: team.name } }));
+  }
   return NextResponse.json(result.rows);
 }
 
