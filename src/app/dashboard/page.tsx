@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Banknote, Building2, Clock3, LoaderCircle, Plus, Users } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 
 type DashboardAccess = { id: string; status: string; password_changed_at: string | null; banks: { id: string; name: string; color: string } | null; access_teams: { team_id: string; teams: { id: string; name: string } | null }[] };
 type DashboardTeam = { id: string; name: string };
@@ -14,6 +15,8 @@ export default function DashboardPage() {
   const [teams, setTeams] = useState<DashboardTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { data: session } = authClient.useSession();
+  const isLorena = session?.user?.email?.toLowerCase() === "atend_cp130@credipi.com.br";
 
   useEffect(() => {
     async function loadDashboard() {
@@ -54,9 +57,9 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="page-heading dashboard-welcome">
-        <div><span className="eyebrow">GESTÃO</span><h1>Bem-vinda, Lorena.</h1><p>Que bom ter você por aqui. Acompanhe os acessos bancários e a operação da sua equipe.</p></div>
-        <div className="lorena-dashboard-greeting"><Image src="/lorena-chibi.png" alt="Lorena comemorando" width={112} height={146} priority /><span>Vamos nessa!</span></div>
+      <div className={`page-heading ${isLorena ? "dashboard-welcome" : ""}`}>
+        <div><span className="eyebrow">GESTÃO</span><h1>{isLorena ? "Bem-vinda, Lorena." : "Visão geral"}</h1><p>{isLorena ? "Que bom ter você por aqui. Acompanhe os acessos bancários e a operação da sua equipe." : "Acompanhe os acessos bancários e a operação da sua equipe."}</p></div>
+        {isLorena && <div className="lorena-dashboard-greeting"><Image src="/lorena-chibi.png" alt="Lorena comemorando" width={112} height={146} priority /><span>Vamos nessa!</span></div>}
         <Link className="primary-button" href="/accesses/new"><Plus size={17} /> Novo acesso</Link>
       </div>
       {error && <p className="inline-error" role="alert">{error}</p>}
