@@ -3,7 +3,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { Building2, ExternalLink, LoaderCircle, Pencil, Plus, Search, Sparkles, Trash2, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 type Bank = { id: string; name: string; color: string; portal_url: string | null; logo_url: string | null; is_active: boolean; notes: string | null };
 const emptyForm = { name: "", color: "#18264d", portal_url: "", logo_url: "", is_active: true, notes: "" };
@@ -21,19 +20,21 @@ export default function BanksPage() {
 
   async function loadBanks() {
     setLoading(true);
-    const { data, error: loadError } = await createClient().from("banks").select("id,name,color,portal_url,logo_url,is_active,notes").order("name");
-    if (loadError) setError("Não foi possível carregar os bancos. Verifique se a migração do Supabase foi aplicada.");
-    else setBanks((data ?? []) as Bank[]);
+    const response = await fetch("/api/data?table=banks");
+    const data = await response.json().catch(() => []);
+    if (!response.ok) setError("Não foi possível carregar os bancos do Neon.");
+    else setBanks(data as Bank[]);
     setLoading(false);
   }
 
   useEffect(() => {
     let cancelled = false;
     async function loadInitialBanks() {
-      const { data, error: loadError } = await createClient().from("banks").select("id,name,color,portal_url,logo_url,is_active,notes").order("name");
+      const response = await fetch("/api/data?table=banks");
+      const data = await response.json().catch(() => []);
       if (cancelled) return;
-      if (loadError) setError("Não foi possível carregar os bancos. Verifique se a migração do Supabase foi aplicada.");
-      else setBanks((data ?? []) as Bank[]);
+      if (!response.ok) setError("Não foi possível carregar os bancos do Neon.");
+      else setBanks(data as Bank[]);
       setLoading(false);
     }
     void loadInitialBanks();
@@ -58,13 +59,10 @@ export default function BanksPage() {
     event.preventDefault();
     setSaving(true);
     setError("");
-    const client = createClient();
     const payload = { ...form, name: form.name.trim(), portal_url: form.portal_url.trim() || null, logo_url: form.logo_url.trim() || null, notes: form.notes.trim() || null };
-    const result = editing
-      ? await client.from("banks").update(payload).eq("id", editing.id)
-      : await client.from("banks").insert(payload);
-    if (result.error) {
-      setError(result.error.code === "23505" ? "Já existe um banco com esse nome." : result.error.message);
+    const response = await fetch("/api/data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: "banks", id: editing?.id, values: payload }) });
+    if (!response.ok) {
+      setError(response.status === 409 ? "Já existe um banco com esse nome." : "Não foi possível salvar o banco no Neon.");
       setSaving(false);
       return;
     }
@@ -90,8 +88,8 @@ export default function BanksPage() {
 
   async function deleteBank(bank: Bank) {
     if (!window.confirm(`Excluir o banco ${bank.name}?`)) return;
-    const { error: deleteError } = await createClient().from("banks").delete().eq("id", bank.id);
-    if (deleteError) setError("Este banco possui acessos vinculados e não pode ser excluído.");
+    const response = await fetch("/api/data", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: "banks", id: bank.id }) });
+    if (!response.ok) setError("Este banco possui acessos vinculados e não pode ser excluído.");
     else await loadBanks();
   }
 
