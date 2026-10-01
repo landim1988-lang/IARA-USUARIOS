@@ -1,0 +1,74 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { ArrowRight, Eye, EyeOff, LockKeyhole } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+export default function LoginForm({ configured, notice }: { configured: boolean; notice: string }) {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [visible, setVisible] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) throw signInError;
+      router.replace("/dashboard");
+      router.refresh();
+    } catch {
+      setError("Não foi possível entrar. Confira seu e-mail e senha.");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="login-page">
+      <section className="login-panel">
+        <a className="brand-lockup" href="/login" aria-label="Stilo Controle de Usuários">
+          <Image className="brand-logo" src="/stilo-logo.png.jpeg" alt="Stilo" width={43} height={43} priority />
+          <span><strong>stilo</strong><small>CONTROLE DE USUÁRIOS</small></span>
+        </a>
+        <div className="login-copy">
+          <span className="eyebrow">ÁREA RESTRITA</span>
+          <h1>Bem-vinda, Iara.</h1>
+          <p>Esse é seu controle de usuários e senhas.</p>
+        </div>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <label htmlFor="email">E-mail</label>
+          <input id="email" type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} disabled={!configured} />
+          <label htmlFor="password">Senha</label>
+          <div className="password-input">
+            <input id="password" type={visible ? "text" : "password"} autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} disabled={!configured} />
+            <button type="button" className="icon-button" aria-label={visible ? "Ocultar senha" : "Revelar senha"} onClick={() => setVisible((current) => !current)}>
+              {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          {notice && <p className="setup-notice" role="status"><LockKeyhole size={16} /> {notice}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
+          {!configured && <p className="setup-notice"><LockKeyhole size={16} /> Configure o projeto Supabase no arquivo .env.local para habilitar o acesso.</p>}
+          <button className="primary-button login-submit" type="submit" disabled={!configured || loading}>
+            {loading ? "Entrando..." : "Entrar"}<ArrowRight size={17} />
+          </button>
+          <p className="login-footnote">Acesso exclusivo. Novas contas são criadas pelo administrador.</p>
+        </form>
+        <span className="login-version">STILO · CREDIPI</span>
+      </section>
+      <aside className="login-art" aria-label="Identidade visual da Stilo">
+        <div className="art-orbit art-orbit-one" />
+        <div className="art-orbit art-orbit-two" />
+        <div className="art-mark">$</div>
+        <div className="art-caption"><span>STILO</span><span>CONTROLE COM CONFIANÇA</span></div>
+      </aside>
+    </main>
+  );
+}
