@@ -76,10 +76,16 @@ input {
 .art-orbit-two { width: min(52vw, 520px); border-color: #ec6b206e; transform: rotate(30deg) scaleY(.72); }
   .art-mark { position: relative; color: var(--orange); font-family: Georgia, serif; font-size: clamp(180px, 26vw, 350px); line-height: .8; }
   .art-caption { position: absolute; right: 44px; bottom: 37px; left: 44px; display: flex; justify-content: space-between; color: #ffffffad; font-size: 9px; font-weight: 700; letter-spacing: 1.3px; }
-  .dashboard-welcome { position: relative; overflow: hidden; }
-  .lorena-dashboard-greeting { display: flex; align-items: flex-end; gap: 8px; margin-left: auto; margin-right: 18px; color: var(--orange); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-  .lorena-dashboard-greeting img { height: 92px; width: auto; object-fit: contain; object-position: bottom; }
+  .dashboard-welcome { position: relative; overflow: hidden; min-height: 158px; align-items: center; padding: 18px 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--background); box-shadow: 0 12px 30px #253b6410; }
+  .dashboard-welcome > div:first-child { position: relative; z-index: 1; }
+  .lorena-dashboard-greeting { position: relative; display: flex; align-items: center; justify-content: center; flex: 0 1 420px; min-width: 280px; height: 124px; margin: 0 14px 0 auto; padding: 0; overflow: hidden; border: 0; border-radius: 12px; background: var(--background); color: var(--orange); cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
+  .lorena-dashboard-greeting:hover { transform: translateY(-3px) rotate(-1deg); box-shadow: 0 10px 22px #253b6418; }
+  .lorena-dashboard-greeting:focus-visible { outline: 3px solid #ec6b2066; outline-offset: 3px; }
+  .lorena-dashboard-greeting img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+  .lorena-dashboard-greeting span { position: absolute; right: 14px; bottom: 10px; padding: 6px 9px; border-radius: 999px; background: var(--orange); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
   .app-frame { min-height: 100vh; }
+  @media (max-width: 980px) { .dashboard-welcome { align-items: flex-start; flex-wrap: wrap; } .lorena-dashboard-greeting { order: 3; flex-basis: 100%; width: 100%; margin: 4px 0 0; } }
+  @media (max-width: 560px) { .dashboard-welcome { padding: 16px; } .lorena-dashboard-greeting { min-width: 0; height: 112px; } .dashboard-welcome .primary-button { width: 100%; } }
 .sidebar { position: fixed; z-index: 5; inset: 0 auto 0 0; display: flex; flex-direction: column; width: 244px; padding: 27px 16px 18px; border-right: 1px solid var(--line); background: var(--surface); }
 .sidebar-brand { gap: 10px; padding: 0 8px 30px; }
 .sidebar-brand strong { font-size: 22px; }
