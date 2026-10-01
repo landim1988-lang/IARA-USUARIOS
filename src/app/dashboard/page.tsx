@@ -59,7 +59,7 @@ export default function DashboardPage() {
     <>
       <div className={`page-heading ${isLorena ? "dashboard-welcome" : ""}`}>
         <div><span className="eyebrow">GESTÃO</span><h1>{isLorena ? "Bem-vinda, Lorena." : "Visão geral"}</h1><p>{isLorena ? "Que bom ter você por aqui. Acompanhe os acessos bancários e a operação da sua equipe." : "Acompanhe os acessos bancários e a operação da sua equipe."}</p></div>
-        {isLorena && <div className="lorena-dashboard-greeting"><Image src="/lorena-chibi.png" alt="Lorena comemorando" width={112} height={146} priority /><span>Vamos nessa!</span></div>}
+        {isLorena && <button className="lorena-dashboard-greeting" type="button" aria-label="Saudação da Lorena"><Image src="/lorena-dashboard.png" alt="Lorena comemorando" width={420} height={150} priority /><span>Vamos nessa!</span></button>}
         <Link className="primary-button" href="/accesses/new"><Plus size={17} /> Novo acesso</Link>
       </div>
       {error && <p className="inline-error" role="alert">{error}</p>}
