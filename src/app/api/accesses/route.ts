@@ -27,9 +27,16 @@ export async function GET(request: Request) {
   const result = id
     ? await pool.query("select a.id,a.bank_id,a.login,a.status,a.notes,a.created_at,a.updated_at,a.password_changed_at,b.id as bank_id_ref,b.name as bank_name,b.color as bank_color,b.logo_url,b.portal_url from accesses a join banks b on b.id=a.bank_id where a.id=$1", [id])
     : await pool.query("select a.id,a.bank_id,a.login,a.status,a.notes,a.created_at,a.updated_at,a.password_changed_at,b.id as bank_id_ref,b.name as bank_name,b.color as bank_color,b.logo_url,b.portal_url from accesses a join banks b on b.id=a.bank_id order by a.updated_at desc");
-  if (id && result.rows[0]) {
-    const teams = await pool.query("select at.team_id,t.id,t.name from access_teams at join teams t on t.id=at.team_id where at.access_id=$1 order by t.name", [id]);
-    result.rows[0].access_teams = teams.rows.map((team) => ({ team_id: team.team_id, teams: { id: team.id, name: team.name } }));
+  const accessIds = result.rows.map((row) => row.id);
+  if (accessIds.length) {
+    const teams = await pool.query("select at.access_id,at.team_id,t.id,t.name from access_teams at join teams t on t.id=at.team_id where at.access_id = any($1::uuid[]) order by t.name", [accessIds]);
+    const byAccess = new Map<string, { team_id: string; teams: { id: string; name: string } }[]>();
+    for (const team of teams.rows) {
+      const links = byAccess.get(team.access_id) ?? [];
+      links.push({ team_id: team.team_id, teams: { id: team.id, name: team.name } });
+      byAccess.set(team.access_id, links);
+    }
+    for (const row of result.rows) row.access_teams = byAccess.get(row.id) ?? [];
   }
   return NextResponse.json(result.rows);
 }

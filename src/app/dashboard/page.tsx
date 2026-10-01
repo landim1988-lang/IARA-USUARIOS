@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Banknote, Building2, Clock3, LoaderCircle, Plus, Users } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 type DashboardAccess = { id: string; status: string; password_changed_at: string | null; banks: { id: string; name: string; color: string } | null; access_teams: { team_id: string; teams: { id: string; name: string } | null }[] };
 type DashboardTeam = { id: string; name: string };
@@ -17,14 +16,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function loadDashboard() {
-      const client = createClient();
-      const [{ data: accessData, error: accessError }, { data: teamData, error: teamError }] = await Promise.all([
-        client.from("accesses").select("id,status,password_changed_at,banks(id,name,color),access_teams(team_id,teams(id,name))"),
-        client.from("teams").select("id,name").order("name"),
-      ]);
-      if (accessError || teamError) setError("Não foi possível carregar os indicadores. Verifique se as migrações do Supabase foram aplicadas.");
+      const [accessResponse, teamResponse] = await Promise.all([fetch("/api/accesses"), fetch("/api/data?table=teams")]);
+      const [accessData, teamData] = await Promise.all([accessResponse.json(), teamResponse.json()]);
+      if (!accessResponse.ok || !teamResponse.ok) setError("Não foi possível carregar os indicadores do Neon.");
       else {
-        setAccesses((accessData ?? []) as unknown as DashboardAccess[]);
+        setAccesses((accessData ?? []).map((row: Record<string, unknown>) => ({
+          ...row,
+          banks: row.bank_name ? { id: row.bank_id_ref, name: row.bank_name, color: row.bank_color } : null,
+          access_teams: Array.isArray(row.access_teams) ? row.access_teams : [],
+        })) as DashboardAccess[]);
         setTeams((teamData ?? []) as DashboardTeam[]);
       }
       setLoading(false);

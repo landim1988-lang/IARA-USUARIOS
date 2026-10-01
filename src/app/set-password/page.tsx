@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowRight, Eye, EyeOff, KeyRound } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth-client";
 
 export default function SetPasswordPage() {
   const router = useRouter();
@@ -20,9 +20,9 @@ export default function SetPasswordPage() {
     if (password.length < 12) { setError("Use pelo menos 12 caracteres."); return; }
     if (password !== confirmation) { setError("As senhas não coincidem."); return; }
     setSaving(true);
-    const { error: updateError } = await createClient().auth.updateUser({ password });
+    const { error: updateError } = await authClient.changePassword({ currentPassword: confirmation, newPassword: password, revokeOtherSessions: true });
     if (updateError) {
-      setError("Não foi possível definir a senha. Reabra o convite mais recente do Supabase.");
+      setError("Não foi possível alterar a senha. Faça login novamente e tente outra vez.");
       setSaving(false);
       return;
     }
