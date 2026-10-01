@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 type Enrichment = {
   name: string;
@@ -73,17 +74,13 @@ function parseJsonObject(value: string | undefined) {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sessão não encontrada." }, { status: 401 });
-
-  const { data: isAdmin, error: adminError } = await supabase.rpc("is_admin");
-  if (adminError || !isAdmin) return NextResponse.json({ error: "Acesso não autorizado." }, { status: 403 });
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) return NextResponse.json({ error: "Sessão não encontrada." }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
   const bankName = typeof body.name === "string" ? body.name.trim() : "";
   const portalUrl = cleanUrl(body.portal_url);
-  if (bankName.length < 2) return NextResponse.json({ error: "Informe o nome do banco." }, { status: 400 });
+  if (bankName.length < 2 || bankName.length > 120) return NextResponse.json({ error: "Informe um nome de banco válido." }, { status: 400 });
 
   const portalDomain = getDomain(portalUrl);
   if (portalDomain) {
