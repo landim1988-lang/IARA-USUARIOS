@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowRight, Eye, EyeOff, LockKeyhole } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth-client";
 
 export default function LoginForm({ configured, notice }: { configured: boolean; notice: string }) {
   const router = useRouter();
@@ -20,8 +20,7 @@ export default function LoginForm({ configured, notice }: { configured: boolean;
     setLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      const { error: signInError } = await authClient.signIn.email({ email, password });
       if (signInError) throw signInError;
       router.replace("/dashboard");
       router.refresh();
@@ -34,9 +33,9 @@ export default function LoginForm({ configured, notice }: { configured: boolean;
   return (
     <main className="login-page">
       <section className="login-panel">
-        <a className="brand-lockup" href="/login" aria-label="Stilo Controle de Usuários">
-          <Image className="brand-logo" src="/stilo-logo.png.jpeg" alt="Stilo" width={43} height={43} priority />
-          <span><strong>stilo</strong><small>CONTROLE DE USUÁRIOS</small></span>
+        <a className="brand-lockup" href="/login" aria-label="CREDIPI Controle de Usuários">
+          <Image className="brand-logo" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/CREDIPI%20CZAO-Z0aRDJwWLz8KS5CKAPi9GiFotdqivl.jpg" alt="CREDIPI" width={43} height={43} priority />
+          <span><strong>CREDIPI</strong><small>CONTROLE DE USUÁRIOS</small></span>
         </a>
         <div className="login-copy">
           <span className="eyebrow">ÁREA RESTRITA</span>
@@ -55,7 +54,7 @@ export default function LoginForm({ configured, notice }: { configured: boolean;
           </div>
           {notice && <p className="setup-notice" role="status"><LockKeyhole size={16} /> {notice}</p>}
           {error && <p className="form-error" role="alert">{error}</p>}
-          {!configured && <p className="setup-notice"><LockKeyhole size={16} /> Configure o projeto Supabase no arquivo .env.local para habilitar o acesso.</p>}
+          {!configured && <p className="setup-notice"><LockKeyhole size={16} /> Configure o banco online para habilitar o acesso.</p>}
           <button className="primary-button login-submit" type="submit" disabled={!configured || loading}>
             {loading ? "Entrando..." : "Entrar"}<ArrowRight size={17} />
           </button>
