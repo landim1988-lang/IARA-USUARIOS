@@ -3,8 +3,12 @@ import AppShell from "@/components/app-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Stilo | Controle de Usuários",
-  description: "Controle seguro dos acessos bancários da Stilo.",
+  title: "CREDIPI | Controle de Usuários",
+  description: "Controle seguro dos acessos bancários da CREDIPI.",
+  icons: {
+    icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/CREDIPI%20CZAO-8svxede8NVqAQKHQTJUjZP4UrkkXrb.jpg",
+    shortcut: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/CREDIPI%20CZAO-8svxede8NVqAQKHQTJUjZP4UrkkXrb.jpg",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

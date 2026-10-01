@@ -60,13 +60,15 @@ export default function LoginForm({ configured, notice }: { configured: boolean;
           </button>
           <p className="login-footnote">Acesso exclusivo. Novas contas são criadas pelo administrador.</p>
         </form>
-        <span className="login-version">STILO · CREDIPI</span>
+        <span className="login-version">CREDIPI · CONTROLE DE USUÁRIOS</span>
       </section>
-      <aside className="login-art" aria-label="Identidade visual da Stilo">
+      <aside className="login-art" aria-label="Identidade visual da CREDIPI">
         <div className="art-orbit art-orbit-one" />
         <div className="art-orbit art-orbit-two" />
-        <div className="art-mark">$</div>
-        <div className="art-caption"><span>STILO</span><span>CONTROLE COM CONFIANÇA</span></div>
+        <div className="art-mark art-logo-mark">
+          <Image src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/CREDIPI%20CZAO-8svxede8NVqAQKHQTJUjZP4UrkkXrb.jpg" alt="Símbolo CREDIPI" width={220} height={220} priority />
+        </div>
+        <div className="art-caption"><span>CREDIPI</span><span>CONTROLE COM CONFIANÇA</span></div>
       </aside>
     </main>
   );
