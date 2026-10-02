@@ -78,7 +78,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <div className="app-frame">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
         <div className="sidebar-brand">
-          <Image className="brand-logo brand-logo-small" src="/stilo-logo.png.jpeg" alt="Stilo" width={36} height={36} priority />
+          <Image className="brand-logo brand-logo-small" src="/stilo-logo.png.jpeg" alt="Stilo" width={36} height={36} style={{ width: "36px", height: "36px" }} priority />
           <span><strong>stilo</strong><small>CONTROLE DE USUÁRIOS</small></span>
           <button className="icon-button sidebar-close" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}><X size={19} /></button>
         </div>

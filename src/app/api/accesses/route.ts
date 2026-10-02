@@ -51,7 +51,10 @@ export async function POST(request: Request) {
     await client.query("begin");
     const password = body.password?.trim();
     const duplicate = await client.query("select id from accesses where bank_id=$1 and lower(trim(login))=lower(trim($2)) and ($3::uuid is null or id <> $3::uuid) limit 1", [body.bank_id, body.login.trim(), body.id ?? null]);
-    if (duplicate.rows[0]) return NextResponse.json({ error: "Este login já está cadastrado neste banco." }, { status: 409 });
+    if (duplicate.rows[0]) {
+      await client.query("rollback");
+      return NextResponse.json({ error: "Este login já está cadastrado neste banco." }, { status: 409 });
+    }
     const result = body.id
       ? await client.query("update accesses set bank_id=$1,login=$2,cpf_titular=nullif($3,''),status=$4,notes=$5,password_encrypted=coalesce($6,password_encrypted),password_changed_at=case when $6 is null then password_changed_at when $6 is not null then now() end,updated_at=now() where id=$7 returning id", [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null, body.id])
       : await client.query("insert into accesses (bank_id,login,cpf_titular,status,notes,password_encrypted,password_changed_at) values ($1,$2,nullif($3,''),$4,$5,$6,case when $6 is null then null else now() end) returning id", [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null]);
