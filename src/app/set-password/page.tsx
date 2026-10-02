@@ -33,7 +33,7 @@ export default function SetPasswordPage() {
   return (
     <main className="login-page">
       <section className="login-panel">
-        <a className="brand-lockup" href="/login" aria-label="Stilo Controle de Usuários"><Image className="brand-logo" src="/stilo-logo.png.jpeg" alt="Stilo" width={43} height={43} priority /><span><strong>stilo</strong><small>CONTROLE DE USUÁRIOS</small></span></a>
+        <a className="brand-lockup" href="/login" aria-label="Stilo Controle de Usuários"><Image className="brand-logo" src="/stilo-logo.png.jpeg" alt="Stilo" width={43} height={43} style={{ width: "43px", height: "43px" }} priority /><span><strong>stilo</strong><small>CONTROLE DE USUÁRIOS</small></span></a>
         <div className="login-copy"><span className="eyebrow">PRIMEIRO ACESSO</span><h1>Defina sua<br />senha.</h1><p>Crie uma senha exclusiva para acessar o controle de usuários da Stilo.</p></div>
         <form className="login-form" onSubmit={savePassword}>
           <label htmlFor="new-password">Nova senha</label>

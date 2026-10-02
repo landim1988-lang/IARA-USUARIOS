@@ -34,7 +34,7 @@ export default function LoginForm({ configured, notice }: { configured: boolean;
     <main className="login-page">
       <section className="login-panel">
         <a className="brand-lockup" href="/login" aria-label="CREDIPI Controle de Usuários">
-          <Image className="brand-logo" src="/stilo-logo.png.jpeg" alt="CREDIPI" width={43} height={43} priority />
+          <Image className="brand-logo" src="/stilo-logo.png.jpeg" alt="CREDIPI" width={43} height={43} style={{ width: "43px", height: "43px" }} priority />
           <span><strong>CREDIPI</strong><small>CONTROLE DE USUÁRIOS</small></span>
         </a>
         <div className="login-copy">
@@ -65,7 +65,7 @@ export default function LoginForm({ configured, notice }: { configured: boolean;
       <aside className="login-art" aria-label="Identidade visual da CREDIPI">
         <div className="art-orbit art-orbit-one" />
         <div className="art-orbit art-orbit-two" />
-        <div className="art-mark art-logo-mark"><Image src="/stilo-logo.png.jpeg" alt="Símbolo CREDIPI" width={220} height={220} priority /></div>
+        <div className="art-mark art-logo-mark"><Image src="/stilo-logo.png.jpeg" alt="Símbolo CREDIPI" width={220} height={220} style={{ width: "220px", height: "220px" }} priority /></div>
         <div className="art-caption"><span>CREDIPI</span><span>CONTROLE COM CONFIANÇA</span></div>
       </aside>
     </main>
