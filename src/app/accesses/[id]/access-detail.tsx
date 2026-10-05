@@ -24,16 +24,27 @@ export default function AccessDetail({ id }: { id: string }) {
   useEffect(() => {
     let cancelled = false;
     async function loadDetail() {
-      const response = await fetch(`/api/accesses?id=${id}`);
-      const rows = await response.json().catch(() => []);
-      if (cancelled) return;
-      if (!response.ok || !rows[0]) setError("Não foi possível carregar este acesso.");
-      else setAccess(rows[0] as Detail);
-      const auditResponse = await fetch(`/api/audit?entity_id=${id}`);
-      const auditRows = await auditResponse.json().catch(() => []);
-      if (auditResponse.ok) setHistory((auditRows ?? []).map((row: { id: number; created_at: string; action: string; details: Record<string, unknown> }) => ({ id: row.id, changed_at: row.created_at, field_name: row.action, previous_value: null, new_value: row.details ? JSON.stringify(row.details) : null })));
-
-      setLoading(false);
+      try {
+        const response = await fetch(`/api/accesses?id=${encodeURIComponent(id)}`, { headers: { Accept: "application/json" } });
+        const rows = await response.json().catch(() => []);
+        if (cancelled) return;
+        if (!response.ok || !Array.isArray(rows) || !rows[0]) {
+          setError("Não foi possível carregar este acesso.");
+          return;
+        }
+        setAccess(rows[0] as Detail);
+        try {
+          const auditResponse = await fetch(`/api/audit?entity_id=${encodeURIComponent(id)}`, { headers: { Accept: "application/json" } });
+          const auditRows = await auditResponse.json().catch(() => []);
+          if (auditResponse.ok && Array.isArray(auditRows)) setHistory(auditRows.map((row: { id: number; created_at: string; action: string; details: Record<string, unknown> }) => ({ id: row.id, changed_at: row.created_at, field_name: row.action, previous_value: null, new_value: row.details ? JSON.stringify(row.details) : null })));
+        } catch {
+          if (!cancelled) setHistory([]);
+        }
+      } catch {
+        if (!cancelled) setError("Não foi possível carregar este acesso. Verifique sua sessão e tente novamente.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
     void loadDetail();
     return () => { cancelled = true; };
