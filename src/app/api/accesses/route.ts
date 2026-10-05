@@ -56,8 +56,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Este login já está cadastrado neste banco." }, { status: 409 });
     }
     const result = body.id
-      ? await client.query("update accesses set bank_id=$1,login=$2,cpf_titular=nullif($3,''),status=$4,notes=$5,password_encrypted=coalesce($6,password_encrypted),password_changed_at=case when $6 is null then password_changed_at when $6 is not null then now() end,updated_at=now() where id=$7 returning id", [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null, body.id])
-      : await client.query("insert into accesses (bank_id,login,cpf_titular,status,notes,password_encrypted,password_changed_at) values ($1,$2,nullif($3,''),$4,$5,$6,case when $6 is null then null else now() end) returning id", [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null]);
+      ? await client.query("update accesses set bank_id=$1,login=$2,cpf_titular=nullif($3,''),status=$4,notes=$5,password_encrypted=coalesce($6,password_encrypted),password_changed_at=case when $6::text is null then password_changed_at else now() end,updated_at=now() where id=$7 returning id", [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null, body.id])
+      : await client.query("insert into accesses (bank_id,login,cpf_titular,status,notes,password_encrypted,password_changed_at) values ($1,$2,nullif($3,''),$4,$5,$6,case when $6::text is null then null else now() end) returning id", [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null]);
     if (!result.rows[0]) return NextResponse.json({ error: "Acesso não encontrado." }, { status: 404 });
     const accessId = result.rows[0].id;
     await client.query("commit");
