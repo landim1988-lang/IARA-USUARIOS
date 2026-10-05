@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   const client = await pool.connect();
   try {
     await client.query("begin");
-    const password = body.password?.trim();
+    const password = typeof body.password === "string" && body.password.length > 0 ? body.password : undefined;
     const duplicate = await client.query("select id from accesses where bank_id=$1 and lower(trim(login))=lower(trim($2)) and ($3::uuid is null or id <> $3::uuid) limit 1", [body.bank_id, body.login.trim(), body.id ?? null]);
     if (duplicate.rows[0]) {
       await client.query("rollback");
