@@ -62,7 +62,13 @@ export async function POST(request: Request) {
     const accessId = result.rows[0].id;
     await client.query("commit");
     return NextResponse.json({ id: accessId });
-  } catch (error: unknown) { await client.query("rollback"); const code = (error as { code?: string }).code; return NextResponse.json({ error: code === "23505" ? "Este login já está cadastrado neste banco." : "Não foi possível salvar o acesso." }, { status: code === "23505" ? 409 : 500 }); } finally { client.release(); }
+  } catch (error: unknown) {
+    await client.query("rollback").catch(() => undefined);
+    const code = (error as { code?: string }).code;
+    const message = (error as { message?: string }).message ?? "";
+    const isSchemaError = code === "42703" || code === "42P01" || code === "42704";
+    return NextResponse.json({ error: code === "23505" ? "Este login já está cadastrado neste banco." : isSchemaError ? "A estrutura do banco está desatualizada. Atualize a migração e tente novamente." : message.includes("invalid input syntax for type uuid") ? "O banco selecionado é inválido. Recarregue a página e tente novamente." : "Não foi possível salvar o acesso." }, { status: code === "23505" ? 409 : 500 });
+  } finally { client.release(); }
 }
 
 export async function PATCH(request: Request) {

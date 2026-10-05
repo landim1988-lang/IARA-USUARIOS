@@ -166,10 +166,21 @@ export async function POST(request: Request) {
     const fallback = fallbackEnrichment(bankName, portalUrl);
     return fallback ? NextResponse.json(fallback) : NextResponse.json({ error: "Não foi possível concluir a busca agora. Informe o portal oficial para carregar a logo." }, { status: 502 });
   }
-  const result = await response.json() as {
+  const responseTextBody = await response.text();
+  if (!responseTextBody.trim()) {
+    const fallback = fallbackEnrichment(bankName, portalUrl);
+    return fallback ? NextResponse.json(fallback) : NextResponse.json({ error: "A busca retornou uma resposta vazia. Informe o portal oficial para carregar a logo." }, { status: 502 });
+  }
+  let result: {
     output_text?: string;
     output?: { type?: string; content?: { type?: string; text?: string }[] }[];
   };
+  try {
+    result = JSON.parse(responseTextBody);
+  } catch {
+    const fallback = fallbackEnrichment(bankName, portalUrl);
+    return fallback ? NextResponse.json(fallback) : NextResponse.json({ error: "A resposta da busca não é um JSON válido." }, { status: 502 });
+  }
   const responseText = result.output_text || result.output
     ?.find((item) => item.type === "message")?.content
     ?.find((item) => item.type === "output_text")?.text;

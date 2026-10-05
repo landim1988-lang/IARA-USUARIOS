@@ -1,0 +1,1 @@
+ALTER TABLE accesses ADD COLUMN IF NOT EXISTS cpf_titular VARCHAR(14);
