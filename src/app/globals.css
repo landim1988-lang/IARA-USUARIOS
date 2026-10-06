@@ -195,10 +195,15 @@ input {
   .bank-cell, .access-bank-cell { display: flex; align-items: center; gap: 10px; }
   .consultation-bank-logo { display: inline-flex; align-items: center; gap: 9px; min-width: 180px; color: var(--navy); font-size: 11px; font-weight: 750; }
   .consultation-bank-logo .bank-logo, .consultation-bank-logo img { flex: 0 0 28px; }
-  .consultation-bank-wrap { position: relative; }
-  .consultation-hover-card { position: absolute; z-index: 5; left: 0; top: calc(100% + 8px); display: grid; gap: 5px; min-width: 230px; padding: 12px 14px; border: 1px solid #d8deeb; border-radius: 10px; background: #fff; box-shadow: 0 12px 28px rgba(24,38,77,.15); color: #53617c; font-size: 11px; opacity: 0; pointer-events: none; transform: translateY(-4px); transition: opacity .16s ease, transform .16s ease; }
+  .consultation-panel .table-scroll { overflow: visible; }
+  .consultation-panel .data-table { overflow: visible; }
+  .consultation-row { position: relative; }
+  .consultation-row:hover { z-index: 10; }
+  .consultation-bank-wrap { position: relative; display: inline-flex; }
+  .consultation-hover-card { position: absolute; z-index: 20; left: 0; top: calc(100% + 8px); display: grid; gap: 5px; min-width: 230px; padding: 12px 14px; border: 1px solid #d8deeb; border-radius: 10px; background: #fff; box-shadow: 0 12px 28px rgba(24,38,77,.15); color: #53617c; font-size: 11px; opacity: 0; pointer-events: none; visibility: hidden; transform: translateY(-4px); transition: opacity .16s ease, transform .16s ease, visibility .16s ease; }
   .consultation-hover-card b { color: var(--navy); font-size: 12px; }
-  .consultation-bank-wrap:hover .consultation-hover-card, .consultation-bank-wrap:focus-within .consultation-hover-card { opacity: 1; pointer-events: auto; transform: translateY(0); }
+  .consultation-bank-wrap:hover .consultation-hover-card, .consultation-bank-wrap:focus-within .consultation-hover-card { opacity: 1; pointer-events: auto; visibility: visible; transform: translateY(0); }
+  @media (max-width: 720px) { .consultation-panel .table-scroll { overflow-x: auto; overflow-y: visible; } }
   .expiry-editor { display: grid; gap: 4px; color: #53617c; font-size: 10px; font-weight: 700; }
   .expiry-editor input { width: 118px; padding: 5px 6px; border: 1px solid #d8deeb; border-radius: 6px; color: var(--navy); font: inherit; }
   .expiry-warning td:first-child { box-shadow: inset 3px 0 #eaa13a; }
