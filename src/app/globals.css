@@ -192,7 +192,9 @@ input {
 .data-table td:first-child, .data-table th:first-child { padding-left: 18px; }
 .actions-heading { width: 76px; text-align: right; }
 .data-table td:last-child { padding-right: 15px; text-align: right; }
-.bank-cell, .access-bank-cell { display: flex; align-items: center; gap: 10px; }
+  .bank-cell, .access-bank-cell { display: flex; align-items: center; gap: 10px; }
+  .consultation-bank-logo { display: inline-flex; align-items: center; gap: 9px; min-width: 180px; color: var(--navy); font-size: 11px; font-weight: 750; }
+  .consultation-bank-logo .bank-logo, .consultation-bank-logo img { flex: 0 0 28px; }
 .bank-logo { display: block; flex: 0 0 28px; width: 28px; height: 28px; object-fit: contain; border-radius: 4px; }
 .bank-cell > span:last-child, .access-bank-cell > span { display: grid; gap: 4px; }
 .bank-cell strong, .access-bank-cell strong { color: var(--navy); font-size: 11px; }
