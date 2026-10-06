@@ -43,7 +43,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   if (!(await user())) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-  const body = await request.json().catch(() => null) as { id?: string; bank_id?: string; login?: string; status?: string; notes?: string | null; cpf_titular?: string | null; password?: string; password_expires_at?: string | null } | null;
+  const body = await request.json().catch(() => null) as { id?: string; bank_id?: string; login?: string; status?: string; notes?: string | null; cpf_titular?: string | null; password?: string; password_expires_at?: string | null; team_ids?: string[] } | null;
   if (!body?.bank_id || !body.login?.trim() || !["active", "blocked", "canceled"].includes(body.status ?? "")) return NextResponse.json({ error: "Informe banco, login e status válido." }, { status: 400 });
   if (body.login.trim().length > 160 || (body.cpf_titular?.trim().length ?? 0) > 14 || (body.notes?.trim().length ?? 0) > 2000) return NextResponse.json({ error: "Um dos campos ultrapassa o limite permitido." }, { status: 400 });
   const client = await pool.connect();
@@ -60,6 +60,10 @@ export async function POST(request: Request) {
       : await client.query("insert into accesses (bank_id,login,cpf_titular,status,notes,password_encrypted,password_changed_at,password_expires_at) values ($1,$2,nullif($3,''),$4,$5,$6,case when $6::text is null then null else now() end,$7::timestamptz) returning id", [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null, body.password_expires_at || null]);
     if (!result.rows[0]) return NextResponse.json({ error: "Acesso não encontrado." }, { status: 404 });
     const accessId = result.rows[0].id;
+    if (body.team_ids) {
+      await client.query("delete from access_teams where access_id=$1", [accessId]);
+      if (body.team_ids.length) await client.query("insert into access_teams (access_id, team_id) select $1, unnest($2::uuid[])", [accessId, body.team_ids]);
+    }
     await client.query("commit");
     return NextResponse.json({ id: accessId });
   } catch (caughtError: unknown) {
