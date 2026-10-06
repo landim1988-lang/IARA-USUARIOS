@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ArrowDownToLine, ArrowUpRight, Eye, EyeOff, FileKey2, Filter, LoaderCircle, Plus, Search, ArrowUpDown } from "lucide-react";
 
 type AccessRow = {
-  id: string; login: string; portal_url: string | null; status: "active" | "blocked" | "canceled"; created_at: string; updated_at: string; password_changed_at: string | null;
+  id: string; login: string; portal_url: string | null; status: "active" | "blocked" | "canceled"; created_at: string; updated_at: string; password_changed_at: string | null; password_expires_at: string | null; cpf_titular: string | null; notes: string | null;
   banks: { id: string; name: string; color: string; logo_url: string | null } | null;
   access_teams: { team_id: string; teams: { id: string; name: string } | null }[];
 };
@@ -31,6 +31,8 @@ export default function AccessesPage() {
   const [view, setView] = useState<"acessos" | "consulta">("acessos");
   const [sort, setSort] = useState<"bank" | "login" | "password">("bank");
   const [direction, setDirection] = useState<"asc" | "desc">("asc");
+  const [expiryDrafts, setExpiryDrafts] = useState<Record<string, string>>({});
+  const [savingExpiry, setSavingExpiry] = useState<string | null>(null);
   const pageSize = 25;
 
   useEffect(() => {
@@ -72,6 +74,26 @@ export default function AccessesPage() {
     else setRevealed((current) => ({ ...current, [id]: data.password }));
   }
 
+  function expiryState(value: string | null) {
+    if (!value) return "none";
+    const days = Math.ceil((new Date(value).getTime() - Date.now()) / 86400000);
+    return days <= 3 ? "critical" : days <= 7 ? "warning" : "safe";
+  }
+
+  function expiryLabel(value: string | null) {
+    if (!value) return "Sem aviso de expiração";
+    return `Expira em ${new Date(value).toLocaleDateString("pt-BR")}`;
+  }
+
+  async function saveExpiry(id: string, value: string) {
+    setSavingExpiry(id);
+    const response = await fetch("/api/accesses", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, password_expires_at: value || null }) });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) setError(data?.error ?? "Não foi possível salvar a expiração.");
+    else { setAccesses((current) => current.map((access) => access.id === id ? { ...access, password_expires_at: value || null, updated_at: new Date().toISOString() } : access)); setError(""); }
+    setSavingExpiry(null);
+  }
+
   async function copyPassword(id: string) {
     let value = revealed[id];
     if (!value) {
@@ -98,7 +120,7 @@ export default function AccessesPage() {
     <>
       <div className="page-heading"><div><span className="eyebrow">GESTÃO DE CREDENCIAIS</span><h1>Acessos</h1><p>Logins bancários compartilhados pelas equipes.</p></div><Link className="primary-button" href="/accesses/new"><Plus size={17} /> Cadastrar acesso</Link></div>
       <nav className="access-tabs" aria-label="Seções de acessos"><button className={`access-tab ${view === "acessos" ? "access-tab-active" : ""}`} type="button" onClick={() => setView("acessos")}>Acessos cadastrados</button><button className={`access-tab ${view === "consulta" ? "access-tab-active" : ""}`} type="button" onClick={() => setView("consulta")}>Consulta</button><Link className="access-tab" href="/accesses/new">Cadastrar acessos</Link></nav>
-      {view === "consulta" && <section className="panel data-panel consultation-panel"><div className="table-toolbar"><div className="table-count"><strong>{consultationRows.length}</strong> acessos para consulta</div><p className="consultation-note">Consulta rápida de Banco, Login e Senha. Clique nos títulos para ordenar.</p></div><div className="table-scroll"><table className="data-table"><thead><tr><th>{sortLabel("bank")}</th><th>URL do banco</th><th>{sortLabel("login")}</th><th>{sortLabel("password")}</th></tr></thead><tbody>{consultationRows.map((access) => <tr key={access.id}><td><span className="access-bank-cell"><span className="consultation-bank-logo">{access.banks?.logo_url ? <Image src={access.banks.logo_url} alt={`Logo de ${access.banks.name ?? "banco"}`} width={28} height={28} unoptimized /> : <i className="bank-swatch" style={{ background: access.banks?.color ?? "#18264d" }} />}<strong>{access.banks?.name ?? "Banco removido"}</strong></span></span></td><td><span className="copyable-cell"><a href={access.portal_url ?? "#"} target="_blank" rel="noreferrer">{access.portal_url ?? "URL não cadastrada"}</a><button className="icon-button secret-action" type="button" aria-label="Copiar URL do banco" onClick={() => void navigator.clipboard.writeText(access.portal_url ?? "")}>⧉</button></span></td><td><span className="copyable-cell"><span>{access.login}</span><button className="icon-button secret-action" type="button" aria-label="Copiar login" onClick={() => void navigator.clipboard.writeText(access.login)}>⧉</button></span></td><td><span className="secret-cell"><span>{revealed[access.id] ?? "••••••••••••"}</span><button className="icon-button secret-action" type="button" aria-label={revealed[access.id] ? "Ocultar senha" : "Revelar senha"} onClick={() => void revealPassword(access.id)}>{revealed[access.id] ? <EyeOff size={15} /> : <Eye size={15} />}</button>{revealed[access.id] && <button className="icon-button secret-action" type="button" aria-label="Copiar senha" onClick={() => void copyPassword(access.id)}>⧉</button>}</span></td></tr>)}</tbody></table></div></section>}
+      {view === "consulta" && <section className="panel data-panel consultation-panel"><div className="table-toolbar"><div className="table-count"><strong>{consultationRows.length}</strong> acessos para consulta</div><p className="consultation-note">Consulta rápida de Banco, Login e Senha. Clique nos títulos para ordenar.</p></div><div className="table-scroll"><table className="data-table"><thead><tr><th>{sortLabel("bank")}</th><th>URL do banco</th><th>{sortLabel("login")}</th><th>{sortLabel("password")}</th><th>Expiração</th></tr></thead><tbody>{consultationRows.map((access) => <tr key={access.id} className={`consultation-row expiry-${expiryState(access.password_expires_at)}`}><td><span className="access-bank-cell consultation-bank-wrap"><span className="consultation-bank-logo">{access.banks?.logo_url ? <Image src={access.banks.logo_url} alt={`Logo de ${access.banks.name ?? "banco"}`} width={28} height={28} unoptimized /> : <i className="bank-swatch" style={{ background: access.banks?.color ?? "#18264d" }} />}<strong>{access.banks?.name ?? "Banco removido"}</strong></span><span className="consultation-hover-card"><b>{access.banks?.name ?? "Banco removido"}</b><span>Status: {statusLabels[access.status]}</span><span>CPF: {access.cpf_titular || "Não informado"}</span><span>Última atualização: {new Date(access.updated_at).toLocaleDateString("pt-BR")}</span><span>{expiryLabel(access.password_expires_at)}</span>{access.notes && <span>Observações: {access.notes}</span>}</span></span></td><td><span className="copyable-cell"><a href={access.portal_url ?? "#"} target="_blank" rel="noreferrer">{access.portal_url ?? "URL não cadastrada"}</a><button className="icon-button secret-action" type="button" aria-label="Copiar URL do banco" onClick={() => void navigator.clipboard.writeText(access.portal_url ?? "")}>⧉</button></span></td><td><span className="copyable-cell"><span>{access.login}</span><button className="icon-button secret-action" type="button" aria-label="Copiar login" onClick={() => void navigator.clipboard.writeText(access.login)}>⧉</button></span></td><td><span className="secret-cell"><span>{revealed[access.id] ?? "••••••••••••"}</span><button className="icon-button secret-action" type="button" aria-label={revealed[access.id] ? "Ocultar senha" : "Revelar senha"} onClick={() => void revealPassword(access.id)}>{revealed[access.id] ? <EyeOff size={15} /> : <Eye size={15} />}</button>{revealed[access.id] && <button className="icon-button secret-action" type="button" aria-label="Copiar senha" onClick={() => void copyPassword(access.id)}>⧉</button>}</span></td><td><label className={`expiry-editor expiry-${expiryState(access.password_expires_at)}`}><span>{access.password_expires_at ? `Expira ${new Date(access.password_expires_at).toLocaleDateString("pt-BR")}` : "Definir expiração"}</span><input aria-label={`Data de expiração de ${access.banks?.name ?? "acesso"}`} type="date" value={expiryDrafts[access.id] ?? (access.password_expires_at ? access.password_expires_at.slice(0, 10) : "")} onChange={(event) => setExpiryDrafts((current) => ({ ...current, [access.id]: event.target.value }))} onBlur={(event) => void saveExpiry(access.id, event.target.value)} disabled={savingExpiry === access.id} /></label></td></tr>)}</tbody></table></div></section>}
       <section className="panel data-panel" hidden={view === "consulta"}><div className="table-toolbar"><div className="table-count"><strong>{filtered.length}</strong> {filtered.length === 1 ? "acesso" : "acessos"}</div><div className="toolbar-actions"><label className="search-field"><Search size={16} /><input aria-label="Buscar acesso" placeholder="Buscar login ou equipe" value={search} onChange={(event) => setSearch(event.target.value)} /></label><button className="secondary-button" onClick={exportCsv} disabled={!filtered.length}><ArrowDownToLine size={15} /> Exportar CSV</button><Link className="secondary-button" href="/accesses/backup"><FileKey2 size={15} /> Backup</Link></div></div>
         <div className="filter-row"><span><Filter size={14} />Filtros</span><select aria-label="Filtrar por banco" value={bankFilter} onChange={(event) => setBankFilter(event.target.value)}><option value="">Todos os bancos</option>{banks.map((bank) => <option key={bank.id} value={bank.id}>{bank.name}</option>)}</select><select aria-label="Filtrar por equipe" value={teamFilter} onChange={(event) => setTeamFilter(event.target.value)}><option value="">Todas as equipes</option>{teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select><select aria-label="Filtrar por status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">Todos os status</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
         {error && <p className="inline-error" role="alert">{error}</p>}

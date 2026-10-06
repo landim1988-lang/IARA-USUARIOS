@@ -25,8 +25,8 @@ export async function GET(request: Request) {
   if (!(await user())) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   const id = new URL(request.url).searchParams.get("id");
   const result = id
-    ? await pool.query("select a.id,a.bank_id,a.login,a.cpf_titular,a.status,a.notes,a.created_at,a.updated_at,a.password_changed_at,b.id as bank_id_ref,b.name as bank_name,b.color as bank_color,b.logo_url,b.portal_url from accesses a join banks b on b.id=a.bank_id where a.id=$1", [id])
-    : await pool.query("select a.id,a.bank_id,a.login,a.cpf_titular,a.status,a.notes,a.created_at,a.updated_at,a.password_changed_at,b.id as bank_id_ref,b.name as bank_name,b.color as bank_color,b.logo_url,b.portal_url from accesses a join banks b on b.id=a.bank_id order by a.updated_at desc");
+    ? await pool.query("select a.id,a.bank_id,a.login,a.cpf_titular,a.status,a.notes,a.created_at,a.updated_at,a.password_changed_at,a.password_expires_at,b.id as bank_id_ref,b.name as bank_name,b.color as bank_color,b.logo_url,b.portal_url from accesses a join banks b on b.id=a.bank_id where a.id=$1", [id])
+    : await pool.query("select a.id,a.bank_id,a.login,a.cpf_titular,a.status,a.notes,a.created_at,a.updated_at,a.password_changed_at,a.password_expires_at,b.id as bank_id_ref,b.name as bank_name,b.color as bank_color,b.logo_url,b.portal_url from accesses a join banks b on b.id=a.bank_id order by a.updated_at desc");
   const accessIds = result.rows.map((row) => row.id);
   if (accessIds.length) {
     const teams = await pool.query("select at.access_id,at.team_id,t.id,t.name from access_teams at join teams t on t.id=at.team_id where at.access_id = any($1::uuid[]) order by t.name", [accessIds]);
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   if (!(await user())) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-  const body = await request.json().catch(() => null) as { id?: string; bank_id?: string; login?: string; status?: string; notes?: string | null; cpf_titular?: string | null; password?: string } | null;
+  const body = await request.json().catch(() => null) as { id?: string; bank_id?: string; login?: string; status?: string; notes?: string | null; cpf_titular?: string | null; password?: string; password_expires_at?: string | null } | null;
   if (!body?.bank_id || !body.login?.trim() || !["active", "blocked", "canceled"].includes(body.status ?? "")) return NextResponse.json({ error: "Informe banco, login e status válido." }, { status: 400 });
   if (body.login.trim().length > 160 || (body.cpf_titular?.trim().length ?? 0) > 14 || (body.notes?.trim().length ?? 0) > 2000) return NextResponse.json({ error: "Um dos campos ultrapassa o limite permitido." }, { status: 400 });
   const client = await pool.connect();
@@ -56,8 +56,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Este login já está cadastrado neste banco." }, { status: 409 });
     }
     const result = body.id
-      ? await client.query("update accesses set bank_id=$1,login=$2,cpf_titular=nullif($3,''),status=$4,notes=$5,password_encrypted=coalesce($6,password_encrypted),password_changed_at=case when $6::text is null then password_changed_at else now() end,updated_at=now() where id=$7 returning id", [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null, body.id])
-      : await client.query("insert into accesses (bank_id,login,cpf_titular,status,notes,password_encrypted,password_changed_at) values ($1,$2,nullif($3,''),$4,$5,$6,case when $6::text is null then null else now() end) returning id", [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null]);
+      ? await client.query("update accesses set bank_id=$1,login=$2,cpf_titular=nullif($3,''),status=$4,notes=$5,password_encrypted=coalesce($6,password_encrypted),password_changed_at=case when $6::text is null then password_changed_at else now() end,password_expires_at=$7::timestamptz,updated_at=now() where id=$8 returning id", [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null, body.password_expires_at || null, body.id])
+      : await client.query("insert into accesses (bank_id,login,cpf_titular,status,notes,password_encrypted,password_changed_at,password_expires_at) values ($1,$2,nullif($3,''),$4,$5,$6,case when $6::text is null then null else now() end,$7::timestamptz) returning id", [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null, body.password_expires_at || null]);
     if (!result.rows[0]) return NextResponse.json({ error: "Acesso não encontrado." }, { status: 404 });
     const accessId = result.rows[0].id;
     await client.query("commit");
@@ -74,8 +74,13 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   if (!(await user())) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-  const body = await request.json().catch(() => null) as { id?: string } | null;
+  const body = await request.json().catch(() => null) as { id?: string; password_expires_at?: string | null } | null;
   if (!body?.id) return NextResponse.json({ error: "Acesso inválido." }, { status: 400 });
+  if (Object.prototype.hasOwnProperty.call(body, "password_expires_at")) {
+    const result = await pool.query("update accesses set password_expires_at=$1::timestamptz,updated_at=now() where id=$2 returning id", [body.password_expires_at || null, body.id]);
+    if (!result.rows[0]) return NextResponse.json({ error: "Acesso não encontrado." }, { status: 404 });
+    return NextResponse.json({ id: body.id, password_expires_at: body.password_expires_at || null });
+  }
   const result = await pool.query("select password_encrypted from accesses where id=$1", [body.id]);
   if (!result.rows[0]?.password_encrypted) return NextResponse.json({ error: "Senha não cadastrada." }, { status: 404 });
   try {
