@@ -195,6 +195,16 @@ input {
   .bank-cell, .access-bank-cell { display: flex; align-items: center; gap: 10px; }
   .consultation-bank-logo { display: inline-flex; align-items: center; gap: 9px; min-width: 180px; color: var(--navy); font-size: 11px; font-weight: 750; }
   .consultation-bank-logo .bank-logo, .consultation-bank-logo img { flex: 0 0 28px; }
+  .consultation-bank-wrap { position: relative; }
+  .consultation-hover-card { position: absolute; z-index: 5; left: 0; top: calc(100% + 8px); display: grid; gap: 5px; min-width: 230px; padding: 12px 14px; border: 1px solid #d8deeb; border-radius: 10px; background: #fff; box-shadow: 0 12px 28px rgba(24,38,77,.15); color: #53617c; font-size: 11px; opacity: 0; pointer-events: none; transform: translateY(-4px); transition: opacity .16s ease, transform .16s ease; }
+  .consultation-hover-card b { color: var(--navy); font-size: 12px; }
+  .consultation-bank-wrap:hover .consultation-hover-card, .consultation-bank-wrap:focus-within .consultation-hover-card { opacity: 1; pointer-events: auto; transform: translateY(0); }
+  .expiry-editor { display: grid; gap: 4px; color: #53617c; font-size: 10px; font-weight: 700; }
+  .expiry-editor input { width: 118px; padding: 5px 6px; border: 1px solid #d8deeb; border-radius: 6px; color: var(--navy); font: inherit; }
+  .expiry-warning td:first-child { box-shadow: inset 3px 0 #eaa13a; }
+  .expiry-critical td:first-child { box-shadow: inset 3px 0 #d94f4f; }
+  .expiry-warning .expiry-editor { color: #a66a00; }
+  .expiry-critical .expiry-editor { color: #b52f37; }
 .bank-logo { display: block; flex: 0 0 28px; width: 28px; height: 28px; object-fit: contain; border-radius: 4px; }
 .bank-cell > span:last-child, .access-bank-cell > span { display: grid; gap: 4px; }
 .bank-cell strong, .access-bank-cell strong { color: var(--navy); font-size: 11px; }
