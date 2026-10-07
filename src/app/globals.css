@@ -198,10 +198,9 @@ input {
   .accesses-table th:nth-child(3), .accesses-table td:nth-child(3) { width: 20%; }
   .accesses-table th:nth-child(4), .accesses-table td:nth-child(4) { width: 13%; }
   .accesses-table th:nth-child(5), .accesses-table td:nth-child(5) { width: 15%; }
-  .accesses-table th:nth-child(6), .accesses-table td:nth-child(6) { width: 13%; }
-  .accesses-table th:nth-child(7), .accesses-table td:nth-child(7) { width: 7%; }
-  .fast-edit-heading { color: var(--navy); font-weight: 800; }
-  .fast-edit-cell { text-align: center !important; vertical-align: middle; }
+  .accesses-table th:nth-child(6), .accesses-table td:nth-child(6) { width: 7%; }
+  .fast-edit-cell { width: 7%; text-align: right !important; vertical-align: middle; }
+  .fast-edit-cell .fast-edit-wrap { justify-content: flex-end; }
   .data-table td:has(.fast-edit-wrap) + td:has(.fast-edit-wrap) { display: none; }
   .bank-cell, .access-bank-cell { display: flex; align-items: center; gap: 10px; }
   .consultation-bank-logo { display: inline-flex; align-items: center; gap: 9px; min-width: 180px; color: var(--navy); font-size: 11px; font-weight: 750; }
@@ -232,7 +231,7 @@ input {
   .expiry-critical .expiry-editor { color: #b52f37; }
   .fast-edit-input, .fast-edit-select { width: 100%; min-width: 0; max-width: 170px; padding: 5px 7px; border: 1px solid #c9d2e4; border-radius: 6px; background: #fff; color: var(--navy); font: inherit; font-size: 11px; }
   .fast-edit-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 5px; }
-  .fast-edit-trigger { margin-left: 6px; padding: 5px 8px; border: 1px solid #c9d2e4; border-radius: 6px; background: #f7f9fc; color: var(--navy); cursor: pointer; font: inherit; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .fast-edit-trigger { margin-left: 6px; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 1px solid #c9d2e4; border-radius: 6px; background: #f7f9fc; color: var(--navy); cursor: pointer; }
   .fast-edit-trigger:hover, .fast-edit-trigger[aria-expanded="true"] { border-color: #8ea2c5; background: #edf2fb; }
   .invalid-portal-url { color: #b52f37; overflow-wrap: anywhere; }
   .fast-edit-wrap { position: relative; display: inline-flex; }
