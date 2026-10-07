@@ -198,7 +198,11 @@ input {
   .accesses-table th:nth-child(3), .accesses-table td:nth-child(3) { width: 20%; }
   .accesses-table th:nth-child(4), .accesses-table td:nth-child(4) { width: 13%; }
   .accesses-table th:nth-child(5), .accesses-table td:nth-child(5) { width: 15%; }
-  .accesses-table th:nth-child(6), .accesses-table td:nth-child(6) { width: 7%; }
+  .accesses-table th:nth-child(6), .accesses-table td:nth-child(6) { width: 13%; }
+  .accesses-table th:nth-child(7), .accesses-table td:nth-child(7) { width: 7%; }
+  .fast-edit-heading { color: var(--navy); font-weight: 800; }
+  .fast-edit-cell { text-align: center !important; vertical-align: middle; }
+  .data-table td:has(.fast-edit-wrap) + td:has(.fast-edit-wrap) { display: none; }
   .bank-cell, .access-bank-cell { display: flex; align-items: center; gap: 10px; }
   .consultation-bank-logo { display: inline-flex; align-items: center; gap: 9px; min-width: 180px; color: var(--navy); font-size: 11px; font-weight: 750; }
   .consultation-bank-logo .bank-logo, .consultation-bank-logo img { flex: 0 0 28px; }
