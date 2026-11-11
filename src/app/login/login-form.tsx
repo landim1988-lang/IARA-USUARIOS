@@ -39,7 +39,7 @@ export default function LoginForm({ configured, notice }: { configured: boolean;
         </a>
         <div className="login-copy">
           <span className="eyebrow">ÁREA RESTRITA</span>
-          <h1>Bem-vinda, Iara.</h1>
+          <h1>Bem-vindo.</h1>
           <p>Esse é seu controle de usuários e senhas.</p>
         </div>
         <form className="login-form" onSubmit={handleSubmit}>
