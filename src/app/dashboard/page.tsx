@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, Banknote, Building2, Clock3, LoaderCircle, Plus, Users } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
-type DashboardAccess = { id: string; status: string; password_changed_at: string | null; banks: { id: string; name: string; color: string } | null; access_teams: { team_id: string; teams: { id: string; name: string } | null }[] };
+type DashboardAccess = { id: string; status: string; password_changed_at: string | null; banks: { id: string; name: string; color: string } | null; access_stores: { store_id: string; stores: { id: string; name: string } | null }[] };
 type DashboardTeam = { id: string; name: string };
 const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
 
@@ -20,14 +20,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function loadDashboard() {
-      const [accessResponse, teamResponse] = await Promise.all([fetch("/api/accesses"), fetch("/api/data?table=teams")]);
+      const [accessResponse, teamResponse] = await Promise.all([fetch("/api/accesses"), fetch("/api/data?table=stores")]);
       const [accessData, teamData] = await Promise.all([accessResponse.json(), teamResponse.json()]);
       if (!accessResponse.ok || !teamResponse.ok) setError("Não foi possível carregar os indicadores do Neon.");
       else {
         setAccesses((accessData ?? []).map((row: Record<string, unknown>) => ({
           ...row,
           banks: row.bank_name ? { id: row.bank_id_ref, name: row.bank_name, color: row.bank_color } : null,
-          access_teams: Array.isArray(row.access_teams) ? row.access_teams : [],
+          access_stores: Array.isArray(row.access_stores) ? row.access_stores : [],
         })) as DashboardAccess[]);
         setTeams((teamData ?? []) as DashboardTeam[]);
       }
@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const activeCount = accesses.filter((access) => access.status === "active").length;
   const blockedCount = accesses.filter((access) => access.status === "blocked").length;
   const canceledCount = accesses.filter((access) => access.status === "canceled").length;
-  const noTeamCount = accesses.filter((access) => access.access_teams.length === 0).length;
+  const noTeamCount = accesses.filter((access) => access.access_stores.length === 0).length;
   const staleCount = accesses.filter((access) => !access.password_changed_at || new Date(access.password_changed_at).getTime() < ninetyDaysAgo).length;
   const bankCounts = accesses.reduce<Record<string, { name: string; color: string; count: number }>>((counts, access) => {
     if (access.banks) {
@@ -49,7 +49,7 @@ export default function DashboardPage() {
     return counts;
   }, {});
   const bankRows = Object.values(bankCounts).sort((first, second) => second.count - first.count);
-  const teamCounts = teams.map((team) => ({ ...team, count: accesses.filter((access) => access.access_teams.some((link) => link.team_id === team.id)).length }));
+  const teamCounts = teams.map((team) => ({ ...team, count: accesses.filter((access) => access.access_stores.some((link) => link.store_id === team.id)).length }));
   const totalStatuses = activeCount + blockedCount + canceledCount;
   const donut = totalStatuses ? `conic-gradient(#20a46b 0 ${activeCount / totalStatuses * 100}%, #eaa13a ${activeCount / totalStatuses * 100}% ${(activeCount + blockedCount) / totalStatuses * 100}%, #a6adbb ${(activeCount + blockedCount) / totalStatuses * 100}% 100%)` : undefined;
   const maxBankCount = Math.max(1, ...bankRows.map((bank) => bank.count));
@@ -58,7 +58,7 @@ export default function DashboardPage() {
   return (
     <>
       <div className={`page-heading ${isLorena ? "dashboard-welcome" : ""}`}>
-        <div><span className="eyebrow">GESTÃO</span><h1>{isLorena ? "Bem-vinda, Lorena." : "Visão geral"}</h1><p>{isLorena ? "Que bom ter você por aqui. Acompanhe os acessos bancários e a operação da sua equipe." : "Acompanhe os acessos bancários e a operação da sua equipe."}</p></div>
+        <div><span className="eyebrow">GESTÃO</span><h1>{isLorena ? "Bem-vinda, Lorena." : "Visão geral"}</h1><p>{isLorena ? "Que bom ter você por aqui. Acompanhe os acessos bancários e a operação da sua loja." : "Acompanhe os acessos bancários e a operação da sua loja."}</p></div>
         {isLorena && <button className="lorena-dashboard-greeting" type="button" aria-label="Saudação da Lorena"><Image src="/lorena-dashboard.png" alt="Lorena comemorando" width={420} height={150} priority /><span>Vamos nessa!</span></button>}
         <Link className="primary-button" href="/accesses/new"><Plus size={17} /> Novo acesso</Link>
       </div>
@@ -68,7 +68,7 @@ export default function DashboardPage() {
           { label: "Acessos cadastrados", value: accesses.length, note: "Total de logins", icon: Banknote, tone: "orange" },
           { label: "Acessos ativos", value: activeCount, note: "Disponíveis para uso", icon: Building2, tone: "green" },
           { label: "Bloqueados", value: blockedCount, note: "Precisam de acompanhamento", icon: Clock3, tone: "slate" },
-          { label: "Sem equipe vinculada", value: noTeamCount, note: "Atribua uma equipe", icon: Users, tone: "navy" },
+          { label: "Sem loja vinculada", value: noTeamCount, note: "Atribua uma loja", icon: Users, tone: "navy" },
         ].map(({ label, value, note, icon: Icon, tone }) => (
           <article className="metric-card" key={label}>
             <div className="metric-top"><span className="metric-label">{label}</span><span className={`metric-icon metric-icon-${tone}`}><Icon size={17} /></span></div>
@@ -89,14 +89,14 @@ export default function DashboardPage() {
       </section>
       <section className="bottom-grid">
         <article className="panel team-panel">
-          <div className="panel-heading"><div><h2>Acessos por equipe</h2><p>Visão das equipes cadastradas</p></div><Link href="/teams" className="subtle-link">Ver equipes <ArrowUpRight size={15} /></Link></div>
+          <div className="panel-heading"><div><h2>Acessos por loja</h2><p>Visão das lojas cadastradas</p></div><Link href="/teams" className="subtle-link">Ver lojas <ArrowUpRight size={15} /></Link></div>
           {teamCounts.map((team, index) => <div className="team-row" key={team.id}><span className={`team-initial ${index % 2 ? "team-initial-blue" : "team-initial-orange"}`}>{team.name.slice(0, 1).toUpperCase()}</span><Link href={`/teams/${team.id}`} className="team-name">{team.name}</Link><span className="team-count">{loading ? "—" : `${team.count} acessos`}</span><span className="team-track"><i style={{ width: `${team.count / maxTeamCount * 100}%` }} /></span></div>)}
-          {!loading && !teamCounts.length && <div className="dashboard-empty-line">Cadastre uma equipe para organizar os acessos.</div>}
+          {!loading && !teamCounts.length && <div className="dashboard-empty-line">Cadastre uma loja para organizar os acessos.</div>}
         </article>
         <article className="panel attention-panel">
           <div className="panel-heading"><div><h2>Atenção necessária</h2><p>Itens para acompanhar</p></div></div>
           <div className="attention-item"><span className="attention-mark attention-orange"><Clock3 size={16} /></span><span><strong>Troca de senha</strong><small>Sem troca há mais de 90 dias</small></span><b>{loading ? "—" : staleCount}</b></div>
-          <div className="attention-item"><span className="attention-mark attention-blue"><Users size={16} /></span><span><strong>Sem equipe vinculada</strong><small>Acessos sem equipe responsável</small></span><b>{loading ? "—" : noTeamCount}</b></div>
+          <div className="attention-item"><span className="attention-mark attention-blue"><Users size={16} /></span><span><strong>Sem loja vinculada</strong><small>Acessos sem loja responsável</small></span><b>{loading ? "—" : noTeamCount}</b></div>
         </article>
       </section>
     </>

@@ -3,10 +3,11 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
-export default function LoginForm({ configured, notice }: { configured: boolean; notice: string }) {
+export default function LoginForm({ configured, notice, masterSetupAvailable }: { configured: boolean; notice: string; masterSetupAvailable: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,7 +40,7 @@ export default function LoginForm({ configured, notice }: { configured: boolean;
         </a>
         <div className="login-copy">
           <span className="eyebrow">ÁREA RESTRITA</span>
-          <h1>Bem-vinda, Iara.</h1>
+          <h1>Bem-vindo.</h1>
           <p>Esse é seu controle de usuários e senhas.</p>
         </div>
         <form className="login-form" onSubmit={handleSubmit}>
@@ -59,6 +60,7 @@ export default function LoginForm({ configured, notice }: { configured: boolean;
             {loading ? "Entrando..." : "Entrar"}<ArrowRight size={17} />
           </button>
           <p className="login-footnote">Acesso exclusivo. Novas contas são criadas pelo administrador.</p>
+          {masterSetupAvailable && <Link className="login-footnote" href="/master-setup">Configuração inicial da conta Master</Link>}
         </form>
         <span className="login-version">CREDIPI · CONTROLE DE USUÁRIOS</span>
       </section>
