@@ -4,14 +4,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Banknote, Building2, ChevronDown, CircleHelp, LayoutDashboard, LogOut, Menu, Moon, Sun, Users, X } from "lucide-react";
+import { Banknote, Building2, ChevronDown, CircleHelp, LayoutDashboard, LogOut, Menu, Moon, Sun, Store, UserRoundCog, X } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
-const navigation = [
+const baseNavigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/accesses", label: "Acessos", icon: Banknote },
   { href: "/banks", label: "Bancos", icon: Building2 },
-  { href: "/teams", label: "Equipes", icon: Users },
 ];
 const themeEvent = "stilo-theme-change";
 
@@ -37,9 +36,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const dark = useSyncExternalStore(subscribeToTheme, getThemeSnapshot, getServerThemeSnapshot);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: session } = authClient.useSession();
+  const sessionUser = session?.user as { name?: string; email?: string; role?: string } | undefined;
+  const isMaster = sessionUser?.role === "master";
+  const navigation = [...baseNavigation, { href: "/teams", label: isMaster ? "Lojas" : "Minha loja", icon: Store }, ...(isMaster ? [{ href: "/users", label: "Usuários", icon: UserRoundCog }] : [])];
 
   useEffect(() => {
-    if (pathname === "/login" || pathname === "/set-password") return;
+    if (pathname === "/login" || pathname === "/set-password" || pathname === "/master-setup") return;
     document.documentElement.dataset.theme = dark ? "dark" : "light";
 
     let timeout: ReturnType<typeof setTimeout>;
@@ -60,7 +63,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     };
   }, [pathname, dark, router]);
 
-  if (pathname === "/login" || pathname === "/set-password") return children;
+  if (pathname === "/login" || pathname === "/set-password" || pathname === "/master-setup") return children;
 
   function toggleTheme() {
     const nextTheme = dark ? "light" : "dark";
@@ -94,7 +97,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <div className="sidebar-bottom">
           <a className="nav-link" href="mailto:suporte@credipi.com.br"><CircleHelp size={18} /><span>Suporte</span></a>
           <div className="sidebar-rule" />
-          <div className="profile-row"><span className="profile-avatar">AD</span><span className="profile-copy"><strong>Administrador</strong><small>Conta principal</small></span><button className="icon-button" aria-label="Sair" title="Sair" onClick={logout}><LogOut size={17} /></button></div>
+          <div className="profile-row"><span className="profile-avatar">{(sessionUser?.name ?? "AD").split(/\s+/).slice(0, 2).map((part) => part.slice(0, 1)).join("").toUpperCase()}</span><span className="profile-copy"><strong>{sessionUser?.name ?? "Administrador"}</strong><small>{isMaster ? "Master" : sessionUser?.email ?? "Administrador"}</small></span><button className="icon-button" aria-label="Sair" title="Sair" onClick={logout}><LogOut size={17} /></button></div>
         </div>
       </aside>
       {menuOpen && <button className="sidebar-scrim" aria-label="Fechar menu" onClick={() => setMenuOpen(false)} />}

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/access-control";
 
 type Enrichment = {
   name: string;
@@ -99,8 +98,9 @@ function parseJsonObject(value: string | undefined) {
 }
 
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return NextResponse.json({ error: "Sessão não encontrada." }, { status: 401 });
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Sessão não encontrada." }, { status: 401 });
+  if (user.role !== "master") return NextResponse.json({ error: "Somente o usuário Master pode atualizar o catálogo de bancos." }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));
   const bankName = typeof body.name === "string" ? body.name.trim() : "";

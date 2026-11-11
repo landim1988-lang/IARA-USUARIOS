@@ -13,6 +13,12 @@ const runtimeOrigins = [
 
 export const auth = betterAuth({
   database: new Pool({ connectionString: process.env.DATABASE_URL }),
+  user: {
+    additionalFields: {
+      role: { type: "string", required: false, defaultValue: "admin", input: false },
+      storeId: { type: "string", required: false, input: false, fieldName: "store_id" },
+    },
+  },
   emailAndPassword: { enabled: true },
   trustedOrigins: runtimeOrigins,
   baseURL:

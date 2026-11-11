@@ -29,18 +29,18 @@ export default function BackupPage() {
     setBusy(true);
 
     try {
-      const [banksResponse, teamsResponse, accessesResponse] = await Promise.all([fetch("/api/data?table=banks"), fetch("/api/data?table=teams"), fetch("/api/accesses")]);
-      const [banks, teams, accesses] = await Promise.all([banksResponse.json(), teamsResponse.json(), accessesResponse.json()]);
-      if (!banksResponse.ok || !teamsResponse.ok || !accessesResponse.ok) throw new Error("Não foi possível ler todos os dados do Neon.");
+      const [banksResponse, storesResponse, accessesResponse] = await Promise.all([fetch("/api/data?table=banks"), fetch("/api/data?table=stores"), fetch("/api/accesses")]);
+      const [banks, stores, accesses] = await Promise.all([banksResponse.json(), storesResponse.json(), accessesResponse.json()]);
+      if (!banksResponse.ok || !storesResponse.ok || !accessesResponse.ok) throw new Error("Não foi possível ler todos os dados do Neon.");
       const credentials = await Promise.all((accesses ?? []).map(async (access: { id: string }) => {
         const response = await fetch("/api/accesses", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: access.id }) });
         const result = await response.json().catch(() => null);
         if (!response.ok && response.status !== 404) throw new Error("Não foi possível incluir todas as senhas.");
         return { access_id: access.id, password: result?.password ?? null };
       }));
-      const accessTeams: unknown[] = [];
+      const accessStores = (accesses ?? []).flatMap((access: { id: string; access_stores?: { store_id: string }[] }) => (access.access_stores ?? []).map((link) => ({ access_id: access.id, store_id: link.store_id })));
       const history: unknown[] = [];
-      const payload = JSON.stringify({ version: 1, exported_at: new Date().toISOString(), banks, teams, accesses, access_teams: accessTeams, access_history: history, credentials });
+      const payload = JSON.stringify({ version: 1, exported_at: new Date().toISOString(), banks, stores, accesses, access_stores: accessStores, access_history: history, credentials });
       const salt = crypto.getRandomValues(new Uint8Array(16));
       const iv = crypto.getRandomValues(new Uint8Array(12));
       const material = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveKey"]);
@@ -61,7 +61,7 @@ export default function BackupPage() {
   return (
     <>
       <div className="page-heading"><div><Link className="back-link" href="/accesses"><ArrowLeft size={15} /> Acessos</Link><span className="eyebrow">PROTEÇÃO DE DADOS</span><h1>Backup criptografado</h1><p>Gere um arquivo completo protegido por uma senha definida agora.</p></div></div>
-      <section className="backup-layout"><article className="panel backup-form-panel"><span className="backup-icon"><FileKey2 size={21} /></span><h2>Proteger arquivo</h2><p>O arquivo inclui bancos, equipes, vínculos, acessos, histórico e senhas. A criptografia é aplicada no navegador com AES-256-GCM.</p><form className="form-grid" onSubmit={createEncryptedBackup}><label className="field-span">Senha do backup<input type="password" autoComplete="new-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} /></label><label className="field-span">Confirme a senha<input type="password" autoComplete="new-password" minLength={12} required value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></label>{error && <p className="inline-error field-span" role="alert">{error}</p>}{success && <p className="success-notice field-span">Backup criptografado gerado. Guarde a senha em local seguro; ela não pode ser recuperada.</p>}<div className="modal-actions field-span"><button type="submit" className="primary-button" disabled={busy}>{busy ? "Criptografando..." : <><Download size={16} /> Gerar backup</>}</button></div></form></article><aside className="backup-notes"><div><LockKeyhole size={18} /><span><strong>Senha não recuperável</strong><small>Sem a senha definida aqui, não será possível abrir o arquivo.</small></span></div><div><ShieldCheck size={18} /><span><strong>Proteção local</strong><small>Os dados são criptografados no navegador antes de baixar.</small></span></div></aside></section>
+      <section className="backup-layout"><article className="panel backup-form-panel"><span className="backup-icon"><FileKey2 size={21} /></span><h2>Proteger arquivo</h2><p>O arquivo inclui bancos, lojas, vínculos, acessos, histórico e senhas. A criptografia é aplicada no navegador com AES-256-GCM.</p><form className="form-grid" onSubmit={createEncryptedBackup}><label className="field-span">Senha do backup<input type="password" autoComplete="new-password" minLength={12} required value={password} onChange={(event) => setPassword(event.target.value)} /></label><label className="field-span">Confirme a senha<input type="password" autoComplete="new-password" minLength={12} required value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></label>{error && <p className="inline-error field-span" role="alert">{error}</p>}{success && <p className="success-notice field-span">Backup criptografado gerado. Guarde a senha em local seguro; ela não pode ser recuperada.</p>}<div className="modal-actions field-span"><button type="submit" className="primary-button" disabled={busy}>{busy ? "Criptografando..." : <><Download size={16} /> Gerar backup</>}</button></div></form></article><aside className="backup-notes"><div><LockKeyhole size={18} /><span><strong>Senha não recuperável</strong><small>Sem a senha definida aqui, não será possível abrir o arquivo.</small></span></div><div><ShieldCheck size={18} /><span><strong>Proteção local</strong><small>Os dados são criptografados no navegador antes de baixar.</small></span></div></aside></section>
     </>
   );
 }
