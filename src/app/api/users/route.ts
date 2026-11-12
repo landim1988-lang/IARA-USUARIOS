@@ -27,8 +27,8 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as { name?: string; email?: string; password?: string; store_id?: string } | null;
   const name = body?.name?.trim() ?? "";
   const email = body?.email?.trim().toLowerCase() ?? "";
-  if (name.length < 2 || name.length > 120 || !emailPattern.test(email) || typeof body?.password !== "string" || body.password.length < 14 || body.password.length > 200 || !body.store_id || !uuidPattern.test(body.store_id)) {
-    return NextResponse.json({ error: "Informe nome, e-mail, senha com no mínimo 14 caracteres e loja válida." }, { status: 400 });
+  if (name.length < 2 || name.length > 120 || !emailPattern.test(email) || typeof body?.password !== "string" || body.password.length < 12 || body.password.length > 200 || !body.store_id || !uuidPattern.test(body.store_id)) {
+    return NextResponse.json({ error: "Informe nome, e-mail, senha com no mínimo 12 caracteres e loja válida." }, { status: 400 });
   }
   const store = await pool.query("select id from stores where id = $1", [body.store_id]);
   if (!store.rows[0]) return NextResponse.json({ error: "A loja selecionada não existe." }, { status: 400 });

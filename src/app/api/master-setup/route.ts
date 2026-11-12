@@ -25,8 +25,8 @@ export async function POST(request: Request) {
   }
   const name = body.name?.trim() ?? "";
   const email = body.email?.trim().toLowerCase() ?? "";
-  if (email !== masterEmail || name.length < 2 || name.length > 120 || typeof body.password !== "string" || body.password.length < 14 || body.password.length > 200) {
-    return NextResponse.json({ error: "Informe o nome e defina uma senha nova com pelo menos 14 caracteres para a conta Master." }, { status: 400 });
+  if (email !== masterEmail || name.length < 2 || name.length > 120 || typeof body.password !== "string" || body.password.length < 12 || body.password.length > 200) {
+    return NextResponse.json({ error: "Informe o nome e defina uma senha nova com pelo menos 12 caracteres para a conta Master." }, { status: 400 });
   }
 
   const existingMaster = await pool.query('select 1 from public."user" where role = \'master\' limit 1');
