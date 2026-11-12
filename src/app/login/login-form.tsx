@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { CREDIPI_LOGO_URL } from "@/lib/branding";
 
 export default function LoginForm({ configured, notice, masterSetupAvailable }: { configured: boolean; notice: string; masterSetupAvailable: boolean }) {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function LoginForm({ configured, notice, masterSetupAvailable }: 
     <main className="login-page">
       <section className="login-panel">
         <a className="brand-lockup" href="/login" aria-label="CREDIPI Controle de Usuários">
-          <Image className="brand-logo" src="/stilo-logo.png.jpeg" alt="CREDIPI" width={43} height={43} style={{ width: "43px", height: "43px" }} priority />
+          <Image className="brand-logo" src={CREDIPI_LOGO_URL} alt="CREDIPI" width={43} height={43} style={{ width: "43px", height: "43px" }} unoptimized priority />
           <span><strong>CREDIPI</strong><small>CONTROLE DE USUÁRIOS</small></span>
         </a>
         <div className="login-copy">
@@ -67,7 +68,7 @@ export default function LoginForm({ configured, notice, masterSetupAvailable }: 
       <aside className="login-art" aria-label="Identidade visual da CREDIPI">
         <div className="art-orbit art-orbit-one" />
         <div className="art-orbit art-orbit-two" />
-        <div className="art-mark art-logo-mark"><Image src="/stilo-logo.png.jpeg" alt="Símbolo CREDIPI" width={220} height={220} style={{ width: "220px", height: "220px" }} priority /></div>
+        <div className="art-mark art-logo-mark"><Image src={CREDIPI_LOGO_URL} alt="Símbolo CREDIPI" width={220} height={220} style={{ width: "220px", height: "220px" }} unoptimized priority /></div>
         <div className="art-caption"><span>CREDIPI</span><span>CONTROLE COM CONFIANÇA</span></div>
       </aside>
     </main>

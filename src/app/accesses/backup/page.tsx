@@ -49,7 +49,7 @@ export default function BackupPage() {
       const file = { format: "stilo-encrypted-backup", version: 1, kdf: "PBKDF2-SHA-256", iterations, cipher: "AES-256-GCM", salt: base64(salt), iv: base64(iv), ciphertext: base64(new Uint8Array(ciphertext)) };
       const url = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: "application/json" }));
       const anchor = document.createElement("a");
-      anchor.href = url; anchor.download = `stilo-backup-${new Date().toISOString().slice(0, 10)}.json`; anchor.click(); URL.revokeObjectURL(url);
+      anchor.href = url; anchor.download = `credipi-backup-${new Date().toISOString().slice(0, 10)}.json`; anchor.click(); URL.revokeObjectURL(url);
       setSuccess(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Falha ao gerar o backup criptografado.");
