@@ -1,4 +1,4 @@
-# Stilo - Controle de Usuários
+# CREDIPI - Controle de Usuários
 
 Aplicação privada para gerenciar acessos bancários, bancos e equipes. Interface em pt-BR, construída com Next.js e Supabase.
 
@@ -34,7 +34,7 @@ npm install
 npm run dev
 ```
 
-Abra `http://localhost:3000`. A migração cadastra as equipes iniciais Stilo Salão e Stilo Callcenter. Os bancos começam vazios.
+Abra `http://localhost:3000`. A migração cria as equipes iniciais e os acessos bancários começam vazios.
 
 ## Segurança
 

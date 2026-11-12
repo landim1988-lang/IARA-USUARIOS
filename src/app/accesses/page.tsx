@@ -116,7 +116,7 @@ export default function AccessesPage() {
     const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
-    anchor.href = url; anchor.download = "stilo-acessos.csv"; anchor.click(); URL.revokeObjectURL(url);
+    anchor.href = url; anchor.download = "credipi-acessos.csv"; anchor.click(); URL.revokeObjectURL(url);
   }
 
   return (

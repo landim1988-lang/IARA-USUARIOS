@@ -6,6 +6,7 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react
 import { usePathname, useRouter } from "next/navigation";
 import { Banknote, Building2, ChevronDown, CircleHelp, LayoutDashboard, LogOut, Menu, Moon, Sun, Store, UserRoundCog, X } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { CREDIPI_LOGO_URL } from "@/lib/branding";
 
 const baseNavigation = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -81,8 +82,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <div className="app-frame">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
         <div className="sidebar-brand">
-          <Image className="brand-logo brand-logo-small" src="/stilo-logo.png.jpeg" alt="Stilo" width={36} height={36} style={{ width: "36px", height: "36px" }} priority />
-          <span><strong>stilo</strong><small>CONTROLE DE USUÁRIOS</small></span>
+          <Image className="brand-logo brand-logo-small" src={CREDIPI_LOGO_URL} alt="CREDIPI" width={36} height={36} style={{ width: "36px", height: "36px" }} unoptimized priority />
+          <span><strong>CREDIPI</strong><small>CONTROLE DE USUÁRIOS</small></span>
           <button className="icon-button sidebar-close" aria-label="Fechar menu" onClick={() => setMenuOpen(false)}><X size={19} /></button>
         </div>
         <div className="workspace-label">GESTÃO</div>
@@ -104,7 +105,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <div className="main-column">
         <header className="topbar">
           <button className="icon-button mobile-menu" aria-label="Abrir menu" onClick={() => setMenuOpen(true)}><Menu size={20} /></button>
-          <div className="topbar-context"><span className="topbar-dot" /> Ambiente seguro <span className="topbar-divider">/</span> Stilo</div>
+          <div className="topbar-context"><span className="topbar-dot" /> Ambiente seguro <span className="topbar-divider">/</span> CREDIPI</div>
           <button className="icon-button theme-toggle" title={dark ? "Ativar tema claro" : "Ativar tema escuro"} aria-label={dark ? "Ativar tema claro" : "Ativar tema escuro"} onClick={toggleTheme}>{dark ? <Sun size={18} /> : <Moon size={18} />}</button>
         </header>
         <main className="page-content">{children}</main>

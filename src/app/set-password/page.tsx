@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowRight, Eye, EyeOff, KeyRound } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { CREDIPI_LOGO_URL } from "@/lib/branding";
 
 export default function SetPasswordPage() {
   const router = useRouter();
@@ -33,8 +34,8 @@ export default function SetPasswordPage() {
   return (
     <main className="login-page">
       <section className="login-panel">
-        <a className="brand-lockup" href="/login" aria-label="Stilo Controle de Usuários"><Image className="brand-logo" src="/stilo-logo.png.jpeg" alt="Stilo" width={43} height={43} style={{ width: "43px", height: "43px" }} priority /><span><strong>stilo</strong><small>CONTROLE DE USUÁRIOS</small></span></a>
-        <div className="login-copy"><span className="eyebrow">PRIMEIRO ACESSO</span><h1>Defina sua<br />senha.</h1><p>Crie uma senha exclusiva para acessar o controle de usuários da Stilo.</p></div>
+        <a className="brand-lockup" href="/login" aria-label="CREDIPI Controle de Usuários"><Image className="brand-logo" src={CREDIPI_LOGO_URL} alt="CREDIPI" width={43} height={43} style={{ width: "43px", height: "43px" }} unoptimized priority /><span><strong>CREDIPI</strong><small>CONTROLE DE USUÁRIOS</small></span></a>
+        <div className="login-copy"><span className="eyebrow">PRIMEIRO ACESSO</span><h1>Defina sua<br />senha.</h1><p>Crie uma senha exclusiva para acessar o controle de usuários da CREDIPI.</p></div>
         <form className="login-form" onSubmit={savePassword}>
           <label htmlFor="new-password">Nova senha</label>
           <div className="password-input"><input id="new-password" type={visible ? "text" : "password"} minLength={12} autoComplete="new-password" required value={password} onChange={(event) => setPassword(event.target.value)} /><button type="button" className="icon-button" aria-label={visible ? "Ocultar senha" : "Revelar senha"} onClick={() => setVisible((current) => !current)}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button></div>
@@ -43,9 +44,9 @@ export default function SetPasswordPage() {
           <button className="primary-button login-submit" type="submit" disabled={saving}>{saving ? "Salvando..." : <>Salvar senha <ArrowRight size={17} /></>}</button>
           <p className="login-footnote"><KeyRound size={13} /> Use uma senha forte, exclusiva e guarde-a em local seguro.</p>
         </form>
-        <span className="login-version">STILO · CREDIPI</span>
+        <span className="login-version">CREDIPI · CONTROLE DE USUÁRIOS</span>
       </section>
-      <aside className="login-art" aria-label="Identidade visual da Stilo"><div className="art-orbit art-orbit-one" /><div className="art-orbit art-orbit-two" /><div className="art-mark">$</div><div className="art-caption"><span>STILO</span><span>CONTROLE COM CONFIANÇA</span></div></aside>
+      <aside className="login-art" aria-label="Identidade visual da CREDIPI"><div className="art-orbit art-orbit-one" /><div className="art-orbit art-orbit-two" /><div className="art-mark art-logo-mark"><Image src={CREDIPI_LOGO_URL} alt="Símbolo CREDIPI" width={220} height={220} unoptimized priority /></div><div className="art-caption"><span>CREDIPI</span><span>CONTROLE COM CONFIANÇA</span></div></aside>
     </main>
   );
 }
