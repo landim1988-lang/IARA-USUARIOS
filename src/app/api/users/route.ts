@@ -16,7 +16,7 @@ export async function GET() {
   const { response } = await masterOnly();
   if (response) return response;
   const result = await pool.query(
-    'select u.id, u.name, u.email, u.role, u.store_id, s.name as store_name from public."user" u left join stores s on s.id = u.store_id order by u.role desc, u.name asc',
+    'select u.id, u.name, u.email, u.role, u.store_id, s.name as store_name from public."user" u left join public.stores s on s.id = u.store_id order by u.role desc, u.name asc',
   );
   return NextResponse.json(result.rows);
 }
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   if (name.length < 2 || name.length > 120 || !emailPattern.test(email) || typeof body?.password !== "string" || body.password.length < 12 || body.password.length > 200 || !body.store_id || !uuidPattern.test(body.store_id)) {
     return NextResponse.json({ error: "Informe nome, e-mail, senha com no mínimo 12 caracteres e loja válida." }, { status: 400 });
   }
-  const store = await pool.query("select id from stores where id = $1", [body.store_id]);
+  const store = await pool.query("select id from public.stores where id = $1", [body.store_id]);
   if (!store.rows[0]) return NextResponse.json({ error: "A loja selecionada não existe." }, { status: 400 });
 
   try {
@@ -59,7 +59,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Usuário ou loja inválida." }, { status: 400 });
   }
   if (body.store_id) {
-    const store = await pool.query("select id from stores where id = $1", [body.store_id]);
+    const store = await pool.query("select id from public.stores where id = $1", [body.store_id]);
     if (!store.rows[0]) return NextResponse.json({ error: "A loja selecionada não existe." }, { status: 400 });
   }
   const result = await pool.query(
