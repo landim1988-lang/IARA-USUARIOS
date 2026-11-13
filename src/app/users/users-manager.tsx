@@ -22,23 +22,41 @@ export default function UsersManager({ initialUsers, stores }: { initialUsers: M
     setError("");
     setNotice("");
     setSaving(true);
-    const response = await fetch("/api/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), email: email.trim(), password, store_id: storeId }) });
-    const data = await response.json().catch(() => null);
-    if (!response.ok) { setError(data?.error ?? "Não foi possível criar o usuário."); setSaving(false); return; }
-    setUsers((current) => [...current, { ...data, store_name: stores.find((store) => store.id === data.store_id)?.name ?? null }].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
-    setName(""); setEmail(""); setPassword("");
-    setNotice("Conta criada. Compartilhe a senha inicial com a pessoa por um canal seguro e oriente-a a alterá-la.");
-    setSaving(false);
+
+    try {
+      const response = await fetch("/api/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), email: email.trim(), password, store_id: storeId }) });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(data?.error ?? "Não foi possível criar o usuário.");
+        return;
+      }
+      setUsers((current) => [...current, { ...data, store_name: stores.find((store) => store.id === data.store_id)?.name ?? null }].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
+      setName(""); setEmail(""); setPassword("");
+      setNotice("Conta criada. Compartilhe a senha inicial com a pessoa por um canal seguro e oriente-a a alterá-la.");
+    } catch {
+      setError("Falha de conexão ao criar a conta. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function updateStore(user: ManagedUser, nextStoreId: string) {
     setError("");
     setUpdating(user.id);
-    const response = await fetch("/api/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: user.id, store_id: nextStoreId || null }) });
-    const data = await response.json().catch(() => null);
-    if (!response.ok) setError(data?.error ?? "Não foi possível atualizar a loja do usuário.");
-    else setUsers((current) => current.map((item) => item.id === user.id ? { ...item, store_id: data.store_id, store_name: stores.find((store) => store.id === data.store_id)?.name ?? null } : item));
-    setUpdating(null);
+
+    try {
+      const response = await fetch("/api/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: user.id, store_id: nextStoreId || null }) });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(data?.error ?? "Não foi possível atualizar a loja do usuário.");
+        return;
+      }
+      setUsers((current) => current.map((item) => item.id === user.id ? { ...item, store_id: data.store_id, store_name: stores.find((store) => store.id === data.store_id)?.name ?? null } : item));
+    } catch {
+      setError("Falha de conexão ao atualizar a loja. Tente novamente.");
+    } finally {
+      setUpdating(null);
+    }
   }
 
   return (

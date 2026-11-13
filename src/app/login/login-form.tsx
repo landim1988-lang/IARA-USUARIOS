@@ -22,12 +22,20 @@ export default function LoginForm({ configured, notice, masterSetupAvailable }: 
     setLoading(true);
 
     try {
-      const { error: signInError } = await authClient.signIn.email({ email, password });
-      if (signInError) throw signInError;
+      const { error: signInError } = await authClient.signIn.email({ email: email.trim().toLowerCase(), password });
+      if (signInError) {
+        setError(
+          signInError.code === "INVALID_ORIGIN"
+            ? "Este endereço não está autorizado para login. Atualize a página e tente novamente."
+            : "Não foi possível entrar. Confira seu e-mail e senha.",
+        );
+        setLoading(false);
+        return;
+      }
       router.replace("/dashboard");
       router.refresh();
     } catch {
-      setError("Não foi possível entrar. Confira seu e-mail e senha.");
+      setError("Não foi possível conectar ao servidor. Tente novamente.");
       setLoading(false);
     }
   }
