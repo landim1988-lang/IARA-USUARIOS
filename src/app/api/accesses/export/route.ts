@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await pool.query(
-      `select a.id,a.login,a.status,a.created_at,a.password_changed_at,a.password_encrypted,b.name as bank_name,
+      `select a.id,a.login,a.nome_titular,a.cpf_titular,a.email_titular,a.notes,a.status,a.created_at,a.password_changed_at,a.password_encrypted,b.name as bank_name,
         coalesce(array_agg(distinct s.name order by s.name) filter (where s.name is not null), '{}'::text[]) as stores
        from accesses a
        join banks b on b.id = a.bank_id
@@ -37,19 +37,20 @@ export async function POST(request: Request) {
       bank_name: row.bank_name as string,
       login: row.login as string,
       password: row.password_encrypted ? decryptAccessPassword(row.password_encrypted as string) : "",
+      nome_titular: row.nome_titular as string | null,
+      cpf_titular: row.cpf_titular as string | null,
+      email_titular: row.email_titular as string | null,
+      notes: row.notes as string | null,
       status: row.status as string,
       stores: row.stores as string[],
       created_at: row.created_at as string,
       password_changed_at: row.password_changed_at as string | null,
     }));
 
-    const idsWithPasswords = result.rows.filter((row) => row.password_encrypted).map((row) => row.id as string);
-    if (idsWithPasswords.length) {
-      await pool.query(
-        "insert into audit_log (user_id, action, entity_type, entity_id, details) select $1, 'export_password', 'access', exported.id, $3::jsonb from unnest($2::uuid[]) as exported(id)",
-        [user.id, idsWithPasswords, JSON.stringify({ channel: "csv" })],
-      );
-    }
+    await pool.query(
+      "insert into audit_log (user_id, action, entity_type, entity_id, details) select $1, 'export_access', 'access', exported.id, $3::jsonb from unnest($2::uuid[]) as exported(id)",
+      [user.id, accessIds, JSON.stringify({ channel: "csv", includes_sensitive_data: true })],
+    );
 
     return NextResponse.json(rows, { headers: { "Cache-Control": "no-store, private" } });
   } catch {

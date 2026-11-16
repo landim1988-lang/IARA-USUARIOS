@@ -13,7 +13,7 @@ type AccessRow = {
   banks: { id: string; name: string; color: string; logo_url: string | null } | null;
   access_stores: { store_id: string; stores: { id: string; name: string } | null }[];
 };
-type ExportRow = { bank_name: string; login: string; password: string; status: string; stores: string[]; created_at: string; password_changed_at: string | null };
+type ExportRow = { bank_name: string; login: string; password: string; nome_titular: string | null; cpf_titular: string | null; email_titular: string | null; notes: string | null; status: string; stores: string[]; created_at: string; password_changed_at: string | null };
 type Bank = { id: string; name: string };
 type Store = { id: string; name: string };
 const statusLabels = { active: "Ativo", blocked: "Bloqueado", canceled: "Cancelado" };
@@ -163,7 +163,7 @@ export default function AccessesPage() {
       }
 
       const exported = data as ExportRow[];
-      const header = ["Banco", "Login", "Senha", "Status", "Lojas", "Criado em", "Última troca de senha"];
+      const header = ["Banco", "Login", "Senha", "Status", "Lojas", "Criado em", "Última troca de senha", "Nome do Titular", "CPF do Titular", "E-mail do Titular", "Observações"];
       const rows = exported.map((access) => [
         access.bank_name,
         access.login,
@@ -172,6 +172,10 @@ export default function AccessesPage() {
         access.stores.join("; "),
         new Date(access.created_at).toLocaleDateString("pt-BR"),
         access.password_changed_at ? new Date(access.password_changed_at).toLocaleDateString("pt-BR") : "",
+        access.nome_titular ?? "",
+        access.cpf_titular ?? "",
+        access.email_titular ?? "",
+        access.notes ?? "",
       ]);
       const csv = [header, ...rows].map((row) => row.map(csvCell).join(";")).join("\r\n");
       const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
