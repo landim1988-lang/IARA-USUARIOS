@@ -3,6 +3,19 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { getCurrentUser, pool, type UserContext } from "@/lib/access-control";
 
 const key = Buffer.from((process.env.BETTER_AUTH_SECRET ?? "").padEnd(32, "0").slice(0, 32));
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidCpf(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (!/^\d{11}$/.test(digits) || /^(\d)\1{10}$/.test(digits)) return false;
+  const calculateDigit = (length: number, initialWeight: number) => {
+    let total = 0;
+    for (let index = 0; index < length; index += 1) total += Number(digits[index]) * (initialWeight - index);
+    const digit = (total * 10) % 11;
+    return digit === 10 ? 0 : digit;
+  };
+  return calculateDigit(9, 10) === Number(digits[9]) && calculateDigit(10, 11) === Number(digits[10]);
+}
 
 function encrypt(value: string) {
   const iv = randomBytes(12);
@@ -38,7 +51,7 @@ async function loadAccesses(id: string | null, user: UserContext) {
     where += `${where ? " and" : "where"} exists (select 1 from access_stores scope where scope.access_id = a.id and scope.store_id = $${values.length})`;
   }
   const result = await pool.query(
-    `select a.id,a.bank_id,a.login,a.cpf_titular,a.status,a.notes,a.created_at,a.updated_at,a.password_changed_at,a.password_expires_at,b.id as bank_id_ref,b.name as bank_name,b.color as bank_color,b.logo_url,b.portal_url from accesses a join banks b on b.id=a.bank_id ${where} order by a.updated_at desc`,
+    `select a.id,a.bank_id,a.login,a.nome_titular,a.cpf_titular,a.email_titular,a.status,a.notes,a.created_at,a.updated_at,a.password_changed_at,a.password_expires_at,b.id as bank_id_ref,b.name as bank_name,b.color as bank_color,b.logo_url,b.portal_url from accesses a join banks b on b.id=a.bank_id ${where} order by a.updated_at desc`,
     values,
   );
   const accessIds = result.rows.map((row) => row.id);
@@ -69,12 +82,19 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   const body = await request.json().catch(() => null) as {
     id?: string; bank_id?: string; login?: string; status?: string; notes?: string | null;
-    cpf_titular?: string | null; password?: string; password_expires_at?: string | null; store_ids?: string[];
+    nome_titular?: string | null; cpf_titular?: string | null; email_titular?: string | null;
+    password?: string; password_expires_at?: string | null; store_ids?: string[];
   } | null;
-  if (!body?.bank_id || !body.login?.trim() || !["active", "blocked", "canceled"].includes(body.status ?? "")) {
-    return NextResponse.json({ error: "Informe banco, login e status válido." }, { status: 400 });
+  const login = typeof body?.login === "string" ? body.login.trim() : "";
+  const nomeTitular = typeof body?.nome_titular === "string" ? body.nome_titular.trim() : "";
+  const cpfTitular = typeof body?.cpf_titular === "string" ? body.cpf_titular.trim() : "";
+  const emailTitular = typeof body?.email_titular === "string" ? body.email_titular.trim().toLowerCase() : "";
+  const notes = typeof body?.notes === "string" ? body.notes.trim() : "";
+  const invalidNotes = body?.notes !== undefined && body.notes !== null && typeof body.notes !== "string";
+  if (typeof body?.bank_id !== "string" || !body.bank_id || !login || nomeTitular.length < 2 || !isValidCpf(cpfTitular) || !emailPattern.test(emailTitular) || !["active", "blocked", "canceled"].includes(body.status ?? "") || invalidNotes) {
+    return NextResponse.json({ error: "Informe banco, login, nome, CPF válido, e-mail do titular e status válido." }, { status: 400 });
   }
-  if (body.login.trim().length > 160 || (body.cpf_titular?.trim().length ?? 0) > 14 || (body.notes?.trim().length ?? 0) > 2000) {
+  if (login.length > 160 || nomeTitular.length > 120 || cpfTitular.length > 14 || emailTitular.length > 254 || (body.password !== undefined && (typeof body.password !== "string" || body.password.length > 200)) || notes.length > 2000) {
     return NextResponse.json({ error: "Um dos campos ultrapassa o limite permitido." }, { status: 400 });
   }
   if (body.id && !(await canAccess(body.id, user))) return NextResponse.json({ error: "Acesso não encontrado." }, { status: 404 });
@@ -86,7 +106,7 @@ export async function POST(request: Request) {
     const password = typeof body.password === "string" && body.password.length > 0 ? body.password : undefined;
     const duplicate = await client.query(
       "select id from accesses where bank_id=$1 and lower(trim(login))=lower(trim($2)) and ($3::uuid is null or id <> $3::uuid) limit 1",
-      [body.bank_id, body.login.trim(), body.id ?? null],
+      [body.bank_id, login, body.id ?? null],
     );
     if (duplicate.rows[0]) {
       await client.query("rollback");
@@ -126,12 +146,12 @@ export async function POST(request: Request) {
 
     const result = body.id
       ? await client.query(
-          "update accesses set bank_id=$1,login=$2,cpf_titular=nullif($3,''),status=$4,notes=$5,password_encrypted=coalesce($6,password_encrypted),password_changed_at=case when $6::text is null then password_changed_at else now() end,password_expires_at=$7::timestamptz,updated_at=now() where id=$8 returning id",
-          [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null, body.password_expires_at || null, body.id],
+          "update accesses set bank_id=$1,login=$2,nome_titular=$3,cpf_titular=$4,email_titular=$5,status=$6,notes=$7,password_encrypted=coalesce($8,password_encrypted),password_changed_at=case when $8::text is null then password_changed_at else now() end,password_expires_at=$9::timestamptz,updated_at=now() where id=$10 returning id",
+          [body.bank_id, login, nomeTitular, cpfTitular, emailTitular, body.status, notes || null, password ? encrypt(password) : null, body.password_expires_at || null, body.id],
         )
       : await client.query(
-          "insert into accesses (bank_id,login,cpf_titular,status,notes,password_encrypted,password_changed_at,password_expires_at) values ($1,$2,nullif($3,''),$4,$5,$6,case when $6::text is null then null else now() end,$7::timestamptz) returning id",
-          [body.bank_id, body.login.trim(), body.cpf_titular?.trim() || "", body.status, body.notes?.trim() || null, password ? encrypt(password) : null, body.password_expires_at || null],
+          "insert into accesses (bank_id,login,nome_titular,cpf_titular,email_titular,status,notes,password_encrypted,password_changed_at,password_expires_at) values ($1,$2,$3,$4,$5,$6,$7,$8,case when $8::text is null then null else now() end,$9::timestamptz) returning id",
+          [body.bank_id, login, nomeTitular, cpfTitular, emailTitular, body.status, notes || null, password ? encrypt(password) : null, body.password_expires_at || null],
         );
     if (!result.rows[0]) {
       await client.query("rollback");

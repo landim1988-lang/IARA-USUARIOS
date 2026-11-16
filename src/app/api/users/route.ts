@@ -69,3 +69,20 @@ export async function PATCH(request: Request) {
   if (!result.rows[0]) return NextResponse.json({ error: "Conta não encontrada ou conta Master protegida." }, { status: 404 });
   return NextResponse.json(result.rows[0]);
 }
+
+export async function DELETE(request: Request) {
+  const { user, response } = await masterOnly();
+  if (response) return response;
+  const body = await request.json().catch(() => null) as { id?: unknown } | null;
+  if (typeof body?.id !== "string" || !body.id.trim() || body.id.length > 200) {
+    return NextResponse.json({ error: "Usuário inválido." }, { status: 400 });
+  }
+  if (body.id === user?.id) return NextResponse.json({ error: "Não é possível excluir a própria conta Master." }, { status: 400 });
+
+  const result = await pool.query(
+    'delete from public."user" where id = $1 and role <> \'master\' returning id',
+    [body.id],
+  );
+  if (!result.rows[0]) return NextResponse.json({ error: "Conta não encontrada ou conta Master protegida." }, { status: 404 });
+  return new NextResponse(null, { status: 204 });
+}
