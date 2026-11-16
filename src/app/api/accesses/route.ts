@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { decryptAccessPassword, encryptAccessPassword } from "@/lib/access-credentials";
 import { getCurrentUser, pool, type UserContext } from "@/lib/access-control";
 
-const key = Buffer.from((process.env.BETTER_AUTH_SECRET ?? "").padEnd(32, "0").slice(0, 32));
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isValidCpf(value: string) {
@@ -15,20 +14,6 @@ function isValidCpf(value: string) {
     return digit === 10 ? 0 : digit;
   };
   return calculateDigit(9, 10) === Number(digits[9]) && calculateDigit(10, 11) === Number(digits[10]);
-}
-
-function encrypt(value: string) {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
-  return `${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${encrypted.toString("base64url")}`;
-}
-
-function decrypt(value: string) {
-  const [iv, tag, content] = value.split(".");
-  const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(iv, "base64url"));
-  decipher.setAuthTag(Buffer.from(tag, "base64url"));
-  return Buffer.concat([decipher.update(Buffer.from(content, "base64url")), decipher.final()]).toString("utf8");
 }
 
 async function canAccess(id: string, user: UserContext) {
@@ -147,11 +132,11 @@ export async function POST(request: Request) {
     const result = body.id
       ? await client.query(
           "update accesses set bank_id=$1,login=$2,nome_titular=$3,cpf_titular=$4,email_titular=$5,status=$6,notes=$7,password_encrypted=coalesce($8,password_encrypted),password_changed_at=case when $8::text is null then password_changed_at else now() end,password_expires_at=$9::timestamptz,updated_at=now() where id=$10 returning id",
-          [body.bank_id, login, nomeTitular, cpfTitular, emailTitular, body.status, notes || null, password ? encrypt(password) : null, body.password_expires_at || null, body.id],
+          [body.bank_id, login, nomeTitular, cpfTitular, emailTitular, body.status, notes || null, password ? encryptAccessPassword(password) : null, body.password_expires_at || null, body.id],
         )
       : await client.query(
           "insert into accesses (bank_id,login,nome_titular,cpf_titular,email_titular,status,notes,password_encrypted,password_changed_at,password_expires_at) values ($1,$2,$3,$4,$5,$6,$7,$8,case when $8::text is null then null else now() end,$9::timestamptz) returning id",
-          [body.bank_id, login, nomeTitular, cpfTitular, emailTitular, body.status, notes || null, password ? encrypt(password) : null, body.password_expires_at || null],
+          [body.bank_id, login, nomeTitular, cpfTitular, emailTitular, body.status, notes || null, password ? encryptAccessPassword(password) : null, body.password_expires_at || null],
         );
     if (!result.rows[0]) {
       await client.query("rollback");
@@ -191,7 +176,7 @@ export async function PATCH(request: Request) {
   const result = await pool.query("select password_encrypted from accesses where id=$1", [body.id]);
   if (!result.rows[0]?.password_encrypted) return NextResponse.json({ error: "Senha não cadastrada." }, { status: 404 });
   try {
-    const password = decrypt(result.rows[0].password_encrypted);
+    const password = decryptAccessPassword(result.rows[0].password_encrypted);
     await pool.query("insert into audit_log (user_id, action, entity_type, entity_id, details) values ($1, $2, $3, $4, $5::jsonb)", [user.id, "reveal_password", "access", body.id, JSON.stringify({ channel: "access-detail" })]);
     return NextResponse.json({ password });
   } catch {

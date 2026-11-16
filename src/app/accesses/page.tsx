@@ -13,6 +13,7 @@ type AccessRow = {
   banks: { id: string; name: string; color: string; logo_url: string | null } | null;
   access_stores: { store_id: string; stores: { id: string; name: string } | null }[];
 };
+type ExportRow = { bank_name: string; login: string; password: string; status: string; stores: string[]; created_at: string; password_changed_at: string | null };
 type Bank = { id: string; name: string };
 type Store = { id: string; name: string };
 const statusLabels = { active: "Ativo", blocked: "Bloqueado", canceled: "Cancelado" };
@@ -52,6 +53,7 @@ export default function AccessesPage() {
   const [direction, setDirection] = useState<"asc" | "desc">("asc");
   const [expiryDrafts, setExpiryDrafts] = useState<Record<string, string>>({});
   const [savingExpiry, setSavingExpiry] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const pageSize = 25;
 
   useEffect(() => {
@@ -137,14 +139,53 @@ export default function AccessesPage() {
     setError("");
   }
 
-  function exportCsv() {
-    const header = ["Banco", "Login", "Status", "Lojas", "Criado em", "Última troca de senha"];
-    const rows = filtered.map((access) => [access.banks?.name ?? "", access.login, statusLabels[access.status], access.access_stores.map((link) => link.stores?.name ?? "").filter(Boolean).join("; "), new Date(access.created_at).toLocaleDateString("pt-BR"), access.password_changed_at ? new Date(access.password_changed_at).toLocaleDateString("pt-BR") : ""]);
-    const csv = [header, ...rows].map((row) => row.map(csvCell).join(";")).join("\r\n");
-    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url; anchor.download = "credipi-acessos.csv"; anchor.click(); URL.revokeObjectURL(url);
+  async function exportCsv() {
+    if (!filtered.length) return;
+    if (!window.confirm("O arquivo CSV incluirá as senhas cadastradas em texto legível. Continue somente se puder armazenar o arquivo com segurança.")) return;
+    setExporting(true);
+    setError("");
+
+    try {
+      const accessIds = filtered.map((access) => access.id);
+      const response = await fetch("/api/accesses/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_ids: accessIds }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !Array.isArray(data)) {
+        setError(data?.error ?? "Não foi possível exportar os acessos.");
+        return;
+      }
+      if (data.length !== accessIds.length) {
+        setError("A exportação não incluiu todos os acessos filtrados. Atualize a lista e tente novamente.");
+        return;
+      }
+
+      const exported = data as ExportRow[];
+      const header = ["Banco", "Login", "Senha", "Status", "Lojas", "Criado em", "Última troca de senha"];
+      const rows = exported.map((access) => [
+        access.bank_name,
+        access.login,
+        access.password,
+        statusLabels[access.status as keyof typeof statusLabels] ?? access.status,
+        access.stores.join("; "),
+        new Date(access.created_at).toLocaleDateString("pt-BR"),
+        access.password_changed_at ? new Date(access.password_changed_at).toLocaleDateString("pt-BR") : "",
+      ]);
+      const csv = [header, ...rows].map((row) => row.map(csvCell).join(";")).join("\r\n");
+      const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "credipi-acessos.csv";
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      setError("Falha de conexão ao preparar a exportação. Tente novamente.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -155,7 +196,7 @@ export default function AccessesPage() {
       {error && <p className="inline-error" role="alert">{error}</p>}
       {view === "relatorios" && (loading ? <section className="panel data-panel report-panel"><div className="loading-state"><LoaderCircle size={19} className="spin" /> Carregando relatório</div></section> : <AccessReport accesses={filtered} stores={stores} storeFilter={storeFilter} />)}
       {view === "consulta" && <section className="panel data-panel consultation-panel"><div className="table-toolbar"><div className="table-count"><strong>{consultationRows.length}</strong> acessos para consulta</div><p className="consultation-note">Consulta rápida de titular, banco, login e senha. Busque por nome, CPF ou e-mail.</p></div><div className="table-scroll"><table className="data-table"><thead><tr><th>{sortLabel("bank")}</th><th>URL do banco</th><th>{sortLabel("login")}</th><th>Titular</th><th>{sortLabel("password")}</th><th>Expiração</th></tr></thead><tbody>{consultationRows.map((access) => <tr key={access.id} className={`consultation-row expiry-${expiryState(access.password_expires_at)}`}><td><span className="access-bank-cell consultation-bank-wrap"><span className="consultation-bank-logo">{access.banks?.logo_url ? <Image src={access.banks.logo_url} alt={`Logo de ${access.banks.name ?? "banco"}`} width={28} height={28} unoptimized /> : <i className="bank-swatch" style={{ background: access.banks?.color ?? "#18264d" }} />}<strong>{access.banks?.name ?? "Banco removido"}</strong></span><span className="consultation-hover-card"><b>{access.banks?.name ?? "Banco removido"}</b><span>Status: {statusLabels[access.status]}</span><span>Titular: {access.nome_titular || "Não informado"}</span><span>CPF: {access.cpf_titular || "Não informado"}</span><span>E-mail: {access.email_titular || "Não informado"}</span><span>Última atualização: {new Date(access.updated_at).toLocaleDateString("pt-BR")}</span><span>{expiryLabel(access.password_expires_at)}</span>{access.notes && <span>Observações: {access.notes}</span>}</span></span></td><td><span className="copyable-cell">{portalHref(access.portal_url) ? <a href={portalHref(access.portal_url)!} target="_blank" rel="noopener noreferrer">{access.portal_url}</a> : <span className="invalid-portal-url">{access.portal_url || "URL não cadastrada"}</span>}<button className="icon-button secret-action" type="button" aria-label="Copiar URL do banco" onClick={() => void navigator.clipboard.writeText(access.portal_url ?? "")}>⧉</button></span></td><td><span className="copyable-cell"><span>{access.login}</span><button className="icon-button secret-action" type="button" aria-label="Copiar login" onClick={() => void navigator.clipboard.writeText(access.login)}>⧉</button></span></td><td><strong>{access.nome_titular || "Não informado"}</strong><br /><small>{access.email_titular || "E-mail não informado"}</small></td><td><span className="secret-cell"><span>{revealed[access.id] ?? "••••••••••••"}</span><button className="icon-button secret-action" type="button" aria-label={revealed[access.id] ? "Ocultar senha" : "Revelar senha"} onClick={() => void revealPassword(access.id)}>{revealed[access.id] ? <EyeOff size={15} /> : <Eye size={15} />}</button>{revealed[access.id] && <button className="icon-button secret-action" type="button" aria-label="Copiar senha" onClick={() => void copyPassword(access.id)}>⧉</button>}</span></td><td><label className={`expiry-editor expiry-${expiryState(access.password_expires_at)}`}><span>{access.password_expires_at ? `Expira ${new Date(access.password_expires_at).toLocaleDateString("pt-BR")}` : "Definir expiração"}</span><input aria-label={`Data de expiração de ${access.banks?.name ?? "acesso"}`} type="date" value={expiryDrafts[access.id] ?? (access.password_expires_at ? access.password_expires_at.slice(0, 10) : "")} onChange={(event) => setExpiryDrafts((current) => ({ ...current, [access.id]: event.target.value }))} onBlur={(event) => void saveExpiry(access.id, event.target.value)} disabled={savingExpiry === access.id} /></label></td></tr>)}</tbody></table></div></section>}
-      <section className="panel data-panel" hidden={view !== "acessos"}><div className="table-toolbar"><div className="table-count"><strong>{filtered.length}</strong> {filtered.length === 1 ? "acesso" : "acessos"}</div><div className="toolbar-actions"><button className="secondary-button" onClick={exportCsv} disabled={!filtered.length}><ArrowDownToLine size={15} /> Exportar CSV</button><Link className="secondary-button" href="/accesses/backup"><FileKey2 size={15} /> Backup</Link></div></div>
+      <section className="panel data-panel" hidden={view !== "acessos"}><div className="table-toolbar"><div className="table-count"><strong>{filtered.length}</strong> {filtered.length === 1 ? "acesso" : "acessos"}</div><div className="toolbar-actions"><button className="secondary-button" onClick={() => void exportCsv()} disabled={!filtered.length || exporting}>{exporting ? <LoaderCircle size={15} className="spin" /> : <ArrowDownToLine size={15} />}{exporting ? "Preparando CSV..." : "Exportar CSV"}</button><Link className="secondary-button" href="/accesses/backup"><FileKey2 size={15} /> Backup</Link></div></div>
         {loading ? <div className="loading-state"><LoaderCircle size={19} className="spin" /> Carregando acessos</div> : filtered.length === 0 ? <div className="empty-state"><span className="empty-state-icon"><FileKey2 size={22} /></span><h2>{accesses.length ? "Nenhum acesso encontrado" : "Nenhum acesso cadastrado"}</h2><p>{accesses.length ? "Ajuste os filtros ou a busca." : "Cadastre um acesso para começar a acompanhar as credenciais da loja."}</p>{!accesses.length && banks.length > 0 && <Link className="primary-button" href="/accesses/new"><Plus size={16} /> Cadastrar acesso</Link>}{!accesses.length && banks.length === 0 && <Link className="text-link" href="/banks">Cadastre um banco primeiro <ArrowUpRight size={14} /></Link>}</div> : <div className="table-scroll"><table className="data-table accesses-table"><thead><tr><th>Banco / login</th><th>Senha</th><th>Lojas</th><th>Status</th><th>Última alteração</th><th className="actions-heading">Detalhes</th><th className="actions-heading">Ações</th></tr></thead><tbody>{paginated.map((access) => <tr key={access.id}><td><span className="access-bank-cell">{access.banks?.logo_url ? <Image className="bank-logo" src={access.banks.logo_url} alt="" width={28} height={28} unoptimized /> : <i className="bank-swatch" style={{ background: access.banks?.color ?? "#18264d" }} />}<span><strong>{access.banks?.name ?? "Banco removido"}</strong><small>{access.login}</small></span></span></td><td><span className="secret-cell"><span>{revealed[access.id] ?? "••••••••••••"}</span><button className="icon-button secret-action" title={revealed[access.id] ? "Ocultar senha" : "Revelar senha"} aria-label={revealed[access.id] ? "Ocultar senha" : "Revelar senha"} onClick={() => void revealPassword(access.id)}>{revealed[access.id] ? <EyeOff size={15} /> : <Eye size={15} />}</button><button className="icon-button secret-action" title="Copiar senha" aria-label="Copiar senha" onClick={() => void copyPassword(access.id)}><span className="copy-glyph">⧉</span></button></span></td><td><span className="badge-list">{access.access_stores.length ? access.access_stores.map((link) => link.stores && <span className="team-badge" key={link.store_id}>{link.stores.name}</span>) : <span className="unassigned-badge">Sem loja</span>}</span></td><td><span className={`status-badge status-${access.status}`}><i />{statusLabels[access.status]}</span></td><td><time className="last-change" dateTime={access.updated_at}>{new Date(access.updated_at).toLocaleString("pt-BR")}</time></td><td><Link className="icon-button details-action" href={`/accesses/${access.id}`} aria-label={`Detalhes de ${access.login}`} title="Detalhes"><ArrowUpRight size={17} /></Link></td><td className="fast-edit-cell"><FastEdit access={access} onSaved={(login, status) => { setAccesses((current) => current.map((item) => item.id === access.id ? { ...item, login, status, updated_at: new Date().toISOString() } : item)); }} /></td></tr>)}</tbody></table></div>}
         {pageCount > 1 && <div className="table-pagination"><span>Página {page} de {pageCount}</span><div><button className="secondary-button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1}>Anterior</button><button className="secondary-button" onClick={() => setPage((current) => Math.min(pageCount, current + 1))} disabled={page === pageCount}>Próxima</button></div></div>}
       </section>
