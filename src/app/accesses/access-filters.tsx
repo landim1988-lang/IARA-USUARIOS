@@ -62,7 +62,7 @@ export function AccessFilters({
         <div className="access-filter-actions">
           <label className="search-field">
             <Search size={16} aria-hidden="true" />
-            <input aria-label="Buscar por login, banco ou loja" placeholder="Buscar login, banco ou loja" value={search} onChange={(event) => onSearchChange(event.target.value)} />
+            <input aria-label="Buscar por titular, CPF, e-mail, login, banco ou loja" placeholder="Buscar nome, CPF, e-mail, login ou banco" value={search} onChange={(event) => onSearchChange(event.target.value)} />
           </label>
           <button className="secondary-button" type="button" onClick={onClear} disabled={!hasFilters}>
             <RotateCcw size={14} aria-hidden="true" /> Limpar filtros
